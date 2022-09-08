@@ -1,6 +1,7 @@
 # Instructions
-1. Install all dependencies in `requirements.txt`
-2. Run the following command in terminal:
+1. Make sure you are in this directory
+2. Install all dependencies in `requirements.txt`
+3. Run the following command in terminal:
 ```commandline
 python train.py \                                                                                
     --in_data_fn=lang_to_sem_data.json \

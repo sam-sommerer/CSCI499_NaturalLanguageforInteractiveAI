@@ -1,0 +1,272 @@
+read in 175181 lines from 30 files in directory books
+INFO: had to represent 471916/3401907 (0.1387) tokens as unk with vocab limit 3000
+INFO: cut off 0 sentences at len 830 before true ending
+INFO: encoded 175181 sentences without regard to order
+SkipgramModel(
+  (embed): Embedding(3000, 128, padding_idx=0)
+  (fc1): Linear(in_features=128, out_features=3000, bias=True)
+)
+Epoch 0
+train loss : 0.6935600555599502 | train acc: 0.0005314092212569219
+val loss : 0.6935600507694755 | val acc: 0.0005347482745041137
+saving word vec to  output_dir/learned_word_vectors.txt
+Saving word vectors to file...
+Loading vectors from file 'output_dir/learned_word_vectors.txt'...
+... done loading vectors
+Evaluating downstream performance on analogy task over 1309 analogies...
+...Total performance across all 1309 analogies: 0.0008 (Exact); 0.0026 (MRR); 382 (MR)
+...Analogy performance across 969 "sem" relation types: 0.0010 (Exact); 0.0031 (MRR); 324 (MR)
+	relation	N	exact	MRR	MR
+	capitals	1	0.0000	0.0023	431
+	binary_gender	12	0.0000	0.0008	1314
+	antonym	54	0.0000	0.0010	1007
+	member	4	0.0000	0.0000	inf
+	hypernomy	542	0.0000	0.0023	431
+	similar	117	0.0000	0.0010	1015
+	partof	29	0.0000	0.0018	549
+	instanceof	9	0.0000	0.0036	282
+	derivedfrom	133	0.0075	0.0104	96
+	hascontext	32	0.0000	0.0013	779
+	relatedto	10	0.0000	0.0016	636
+	attributeof	11	0.0000	0.0009	1069
+	causes	6	0.0000	0.0014	714
+	entails	9	0.0000	0.0012	803
+...Analogy performance across 340 "syn" relation types: 0.0000 (Exact); 0.0013 (MRR); 783 (MR)
+	relation	N	exact	MRR	MR
+	adj_adv	22	0.0000	0.0017	584
+	comparative	7	0.0000	0.0012	834
+	superlative	3	0.0000	0.0004	2835
+	present_participle	62	0.0000	0.0024	408
+	denonym	2	0.0000	0.0000	inf
+	past_tense	64	0.0000	0.0014	733
+	plural_nouns	107	0.0000	0.0007	1348
+	plural_verbs	73	0.0000	0.0009	1064
+saving model to  output_dir/model.ckpt
+Epoch 1
+train loss : 0.693560055645165 | train acc: 0.0005314092212569226
+Epoch 2
+train loss : 0.6935600553447171 | train acc: 0.0005314092212569226
+Epoch 3
+train loss : 0.6935600552472032 | train acc: 0.0005314092212569224
+Epoch 4
+train loss : 0.6935600553684366 | train acc: 0.0005314092212569227
+Epoch 5
+train loss : 0.6935600554993335 | train acc: 0.0005314092212569222
+val loss : 0.6935600509513256 | val acc: 0.0005347482745041133
+saving word vec to  output_dir/learned_word_vectors.txt
+Saving word vectors to file...
+Loading vectors from file 'output_dir/learned_word_vectors.txt'...
+... done loading vectors
+Evaluating downstream performance on analogy task over 1309 analogies...
+...Total performance across all 1309 analogies: 0.0008 (Exact); 0.0026 (MRR); 382 (MR)
+...Analogy performance across 969 "sem" relation types: 0.0010 (Exact); 0.0031 (MRR); 324 (MR)
+	relation	N	exact	MRR	MR
+	capitals	1	0.0000	0.0023	431
+	binary_gender	12	0.0000	0.0008	1314
+	antonym	54	0.0000	0.0010	1007
+	member	4	0.0000	0.0000	inf
+	hypernomy	542	0.0000	0.0023	431
+	similar	117	0.0000	0.0010	1015
+	partof	29	0.0000	0.0018	549
+	instanceof	9	0.0000	0.0036	282
+	derivedfrom	133	0.0075	0.0104	96
+	hascontext	32	0.0000	0.0013	779
+	relatedto	10	0.0000	0.0016	636
+	attributeof	11	0.0000	0.0009	1069
+	causes	6	0.0000	0.0014	714
+	entails	9	0.0000	0.0012	803
+...Analogy performance across 340 "syn" relation types: 0.0000 (Exact); 0.0013 (MRR); 783 (MR)
+	relation	N	exact	MRR	MR
+	adj_adv	22	0.0000	0.0017	584
+	comparative	7	0.0000	0.0012	834
+	superlative	3	0.0000	0.0004	2835
+	present_participle	62	0.0000	0.0024	408
+	denonym	2	0.0000	0.0000	inf
+	past_tense	64	0.0000	0.0014	733
+	plural_nouns	107	0.0000	0.0007	1348
+	plural_verbs	73	0.0000	0.0009	1064
+saving model to  output_dir/model.ckpt
+Epoch 6
+train loss : 0.6935600554193898 | train acc: 0.0005314092212569227
+Epoch 7
+train loss : 0.6935600556144174 | train acc: 0.0005314092212569223
+Epoch 8
+train loss : 0.6935600554457448 | train acc: 0.0005314092212569222
+Epoch 9
+train loss : 0.6935600555757633 | train acc: 0.0005314092212569218
+Epoch 10
+train loss : 0.6935600556091464 | train acc: 0.0005314092212569226
+val loss : 0.6935600506456067 | val acc: 0.0005347482745041136
+saving word vec to  output_dir/learned_word_vectors.txt
+Saving word vectors to file...
+Loading vectors from file 'output_dir/learned_word_vectors.txt'...
+... done loading vectors
+Evaluating downstream performance on analogy task over 1309 analogies...
+...Total performance across all 1309 analogies: 0.0008 (Exact); 0.0026 (MRR); 382 (MR)
+...Analogy performance across 969 "sem" relation types: 0.0010 (Exact); 0.0031 (MRR); 324 (MR)
+	relation	N	exact	MRR	MR
+	capitals	1	0.0000	0.0023	431
+	binary_gender	12	0.0000	0.0008	1314
+	antonym	54	0.0000	0.0010	1007
+	member	4	0.0000	0.0000	inf
+	hypernomy	542	0.0000	0.0023	431
+	similar	117	0.0000	0.0010	1015
+	partof	29	0.0000	0.0018	549
+	instanceof	9	0.0000	0.0036	282
+	derivedfrom	133	0.0075	0.0104	96
+	hascontext	32	0.0000	0.0013	779
+	relatedto	10	0.0000	0.0016	636
+	attributeof	11	0.0000	0.0009	1069
+	causes	6	0.0000	0.0014	714
+	entails	9	0.0000	0.0012	803
+...Analogy performance across 340 "syn" relation types: 0.0000 (Exact); 0.0013 (MRR); 783 (MR)
+	relation	N	exact	MRR	MR
+	adj_adv	22	0.0000	0.0017	584
+	comparative	7	0.0000	0.0012	834
+	superlative	3	0.0000	0.0004	2835
+	present_participle	62	0.0000	0.0024	408
+	denonym	2	0.0000	0.0000	inf
+	past_tense	64	0.0000	0.0014	733
+	plural_nouns	107	0.0000	0.0007	1348
+	plural_verbs	73	0.0000	0.0009	1064
+saving model to  output_dir/model.ckpt
+Epoch 11
+train loss : 0.693560055480885 | train acc: 0.0005314092212569224
+Epoch 12
+train loss : 0.6935600554044552 | train acc: 0.0005314092212569224
+Epoch 13
+train loss : 0.693560055668006 | train acc: 0.0005314092212569228
+Epoch 14
+train loss : 0.693560055493184 | train acc: 0.0005314092212569222
+Epoch 15
+train loss : 0.6935600555863053 | train acc: 0.0005314092212569224
+val loss : 0.6935600501395891 | val acc: 0.0005347482745041138
+saving word vec to  output_dir/learned_word_vectors.txt
+Saving word vectors to file...
+Loading vectors from file 'output_dir/learned_word_vectors.txt'...
+... done loading vectors
+Evaluating downstream performance on analogy task over 1309 analogies...
+...Total performance across all 1309 analogies: 0.0008 (Exact); 0.0026 (MRR); 382 (MR)
+...Analogy performance across 969 "sem" relation types: 0.0010 (Exact); 0.0031 (MRR); 324 (MR)
+	relation	N	exact	MRR	MR
+	capitals	1	0.0000	0.0023	431
+	binary_gender	12	0.0000	0.0008	1314
+	antonym	54	0.0000	0.0010	1007
+	member	4	0.0000	0.0000	inf
+	hypernomy	542	0.0000	0.0023	431
+	similar	117	0.0000	0.0010	1015
+	partof	29	0.0000	0.0018	549
+	instanceof	9	0.0000	0.0036	282
+	derivedfrom	133	0.0075	0.0104	96
+	hascontext	32	0.0000	0.0013	779
+	relatedto	10	0.0000	0.0016	636
+	attributeof	11	0.0000	0.0009	1069
+	causes	6	0.0000	0.0014	714
+	entails	9	0.0000	0.0012	803
+...Analogy performance across 340 "syn" relation types: 0.0000 (Exact); 0.0013 (MRR); 783 (MR)
+	relation	N	exact	MRR	MR
+	adj_adv	22	0.0000	0.0017	584
+	comparative	7	0.0000	0.0012	834
+	superlative	3	0.0000	0.0004	2835
+	present_participle	62	0.0000	0.0024	408
+	denonym	2	0.0000	0.0000	inf
+	past_tense	64	0.0000	0.0014	733
+	plural_nouns	107	0.0000	0.0007	1348
+	plural_verbs	73	0.0000	0.0009	1064
+saving model to  output_dir/model.ckpt
+Epoch 16
+train loss : 0.6935600555397446 | train acc: 0.0005314092212569226
+Epoch 17
+train loss : 0.6935600554395953 | train acc: 0.0005314092212569221
+Epoch 18
+train loss : 0.6935600557382862 | train acc: 0.0005314092212569228
+Epoch 19
+train loss : 0.6935600554246608 | train acc: 0.0005314092212569226
+Epoch 20
+train loss : 0.6935600554211467 | train acc: 0.0005314092212569224
+val loss : 0.6935600506693261 | val acc: 0.0005347482745041136
+saving word vec to  output_dir/learned_word_vectors.txt
+Saving word vectors to file...
+Loading vectors from file 'output_dir/learned_word_vectors.txt'...
+... done loading vectors
+Evaluating downstream performance on analogy task over 1309 analogies...
+...Total performance across all 1309 analogies: 0.0008 (Exact); 0.0026 (MRR); 382 (MR)
+...Analogy performance across 969 "sem" relation types: 0.0010 (Exact); 0.0031 (MRR); 324 (MR)
+	relation	N	exact	MRR	MR
+	capitals	1	0.0000	0.0023	431
+	binary_gender	12	0.0000	0.0008	1314
+	antonym	54	0.0000	0.0010	1007
+	member	4	0.0000	0.0000	inf
+	hypernomy	542	0.0000	0.0023	431
+	similar	117	0.0000	0.0010	1015
+	partof	29	0.0000	0.0018	549
+	instanceof	9	0.0000	0.0036	282
+	derivedfrom	133	0.0075	0.0104	96
+	hascontext	32	0.0000	0.0013	779
+	relatedto	10	0.0000	0.0016	636
+	attributeof	11	0.0000	0.0009	1069
+	causes	6	0.0000	0.0014	714
+	entails	9	0.0000	0.0012	803
+...Analogy performance across 340 "syn" relation types: 0.0000 (Exact); 0.0013 (MRR); 783 (MR)
+	relation	N	exact	MRR	MR
+	adj_adv	22	0.0000	0.0017	584
+	comparative	7	0.0000	0.0012	834
+	superlative	3	0.0000	0.0004	2835
+	present_participle	62	0.0000	0.0024	408
+	denonym	2	0.0000	0.0000	inf
+	past_tense	64	0.0000	0.0014	733
+	plural_nouns	107	0.0000	0.0007	1348
+	plural_verbs	73	0.0000	0.0009	1064
+saving model to  output_dir/model.ckpt
+Epoch 21
+train loss : 0.6935600555239316 | train acc: 0.0005314092212569222
+Epoch 22
+train loss : 0.6935600555520437 | train acc: 0.0005314092212569227
+Epoch 23
+train loss : 0.6935600554018198 | train acc: 0.0005314092212569227
+Epoch 24
+train loss : 0.6935600552630163 | train acc: 0.0005314092212569227
+Epoch 25
+train loss : 0.6935600555871838 | train acc: 0.0005314092212569226
+val loss : 0.6935600505612703 | val acc: 0.0005347482745041134
+saving word vec to  output_dir/learned_word_vectors.txt
+Saving word vectors to file...
+Loading vectors from file 'output_dir/learned_word_vectors.txt'...
+... done loading vectors
+Evaluating downstream performance on analogy task over 1309 analogies...
+...Total performance across all 1309 analogies: 0.0008 (Exact); 0.0026 (MRR); 382 (MR)
+...Analogy performance across 969 "sem" relation types: 0.0010 (Exact); 0.0031 (MRR); 324 (MR)
+	relation	N	exact	MRR	MR
+	capitals	1	0.0000	0.0023	431
+	binary_gender	12	0.0000	0.0008	1314
+	antonym	54	0.0000	0.0010	1007
+	member	4	0.0000	0.0000	inf
+	hypernomy	542	0.0000	0.0023	431
+	similar	117	0.0000	0.0010	1015
+	partof	29	0.0000	0.0018	549
+	instanceof	9	0.0000	0.0036	282
+	derivedfrom	133	0.0075	0.0104	96
+	hascontext	32	0.0000	0.0013	779
+	relatedto	10	0.0000	0.0016	636
+	attributeof	11	0.0000	0.0009	1069
+	causes	6	0.0000	0.0014	714
+	entails	9	0.0000	0.0012	803
+...Analogy performance across 340 "syn" relation types: 0.0000 (Exact); 0.0013 (MRR); 783 (MR)
+	relation	N	exact	MRR	MR
+	adj_adv	22	0.0000	0.0017	584
+	comparative	7	0.0000	0.0012	834
+	superlative	3	0.0000	0.0004	2835
+	present_participle	62	0.0000	0.0024	408
+	denonym	2	0.0000	0.0000	inf
+	past_tense	64	0.0000	0.0014	733
+	plural_nouns	107	0.0000	0.0007	1348
+	plural_verbs	73	0.0000	0.0009	1064
+saving model to  output_dir/model.ckpt
+Epoch 26
+train loss : 0.6935600554352028 | train acc: 0.0005314092212569227
+Epoch 27
+train loss : 0.6935600556258379 | train acc: 0.0005314092212569226
+Epoch 28
+train loss : 0.6935600554387168 | train acc: 0.0005314092212569228
+Epoch 29
+train loss : 0.6935600555863053 | train acc: 0.0005314092212569222

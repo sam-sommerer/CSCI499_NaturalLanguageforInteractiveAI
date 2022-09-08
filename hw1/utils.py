@@ -44,6 +44,8 @@ def build_tokenizer_table(train, vocab_size=1000):
                     word_list.append(word)
                     padded_len += 1
             padded_lens.append(padded_len)
+
+    # Counting occurrences of words and sorting them from most occurrences to least
     corpus = Counter(word_list)
     corpus_ = sorted(corpus, key=corpus.get, reverse=True)[
         : vocab_size - 4

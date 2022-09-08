@@ -26,12 +26,6 @@ class LSTM(torch.nn.Module):
         self.hidden_size = hidden_size  # hidden state
         self.seq_length = seq_length  # sequence length
 
-        # self.lstm = torch.nn.LSTM(
-        #     input_size=input_size,
-        #     hidden_size=hidden_size,
-        #     num_layers=num_layers,
-        #     batch_first=True,
-        # )  # lstm
         self.lstm = torch.nn.LSTM(
             input_size=embedding_dim,
             hidden_size=hidden_size,

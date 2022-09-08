@@ -3,10 +3,10 @@ import torch
 import argparse
 import json
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score
 from torch.utils.data import TensorDataset, DataLoader
 from model import LSTM
-from collections import Counter
 
 from utils import (
     get_device,
@@ -16,118 +16,35 @@ from utils import (
 )
 
 
-# def encode_data(data, vocab_to_index, seq_len, actions_to_index, targets_to_index):
-#     n_episodes = len(data)
-#     # n_books = len(b2i)
-#     # x = np.zeros((n_episodes, 200, seq_len), dtype=np.int32)
-#     # y = np.zeros((n_episodes, 200, 2), dtype=np.int32)
-#
-#     x = np.zeros((n_episodes, seq_len), dtype=np.int32)
-#     y = np.zeros((n_episodes, 2), dtype=np.int32)
-#
-#     print(f"data type: {type(data)}")
-#     print(f"len(data): {len(data)}")
-#     print(f"data: {data[0]}")
-#
-#     idx = 0
-#     n_early_cutoff = 0
-#     n_unks = 0
-#     n_tks = 0
-#
-#     # for episode in data:
-#     # for instruction_idx, (instruction, label) in enumerate(episode):
-#     for instruction, label in data:
-#         instruction = preprocess_string(instruction)
-#         action, target = label
-#         # x[idx][instruction_idx][0] = vocab_to_index["<start>"]
-#         x[idx][0] = vocab_to_index["<start>"]
-#         jdx = 1
-#         for word in instruction.split():
-#             if len(word) > 0:
-#                 # x[idx][instruction_idx][jdx] = (
-#                 #     vocab_to_index[word]
-#                 #     if word in vocab_to_index
-#                 #     else vocab_to_index["<unk>"]
-#                 # )
-#                 x[idx][jdx] = (
-#                     vocab_to_index[word]
-#                     if word in vocab_to_index
-#                     else vocab_to_index["<unk>"]
-#                 )
-#                 # n_unks += 1 if x[idx][instruction_idx][jdx] == vocab_to_index["<unk>"] else 0
-#                 n_unks += 1 if x[idx][jdx] == vocab_to_index["<unk>"] else 0
-#                 n_tks += 1
-#                 jdx += 1
-#                 if jdx == seq_len - 1:
-#                     n_early_cutoff += 1
-#                     break
-#         # x[idx][instruction_idx][jdx] = vocab_to_index["<end>"]
-#         # y[idx][instruction_idx][0] = actions_to_index[action]
-#         # y[idx][instruction_idx][1] = targets_to_index[target]
-#         x[idx][jdx] = vocab_to_index["<end>"]
-#         y[idx][0] = actions_to_index[action]
-#         y[idx][1] = targets_to_index[target]
-#         idx += 1
-#     print(
-#         "INFO: had to represent %d/%d (%.4f) tokens as unk with vocab limit %d"
-#         % (n_unks, n_tks, n_unks / n_tks, len(vocab_to_index))
-#     )
-#     print(
-#         "INFO: cut off %d instances at len %d before true ending"
-#         % (n_early_cutoff, seq_len)
-#     )
-#     print("INFO: encoded %d instances without regard to order" % idx)
-#     return x, y
-
-
 def encode_data(data, vocab_to_index, seq_len, actions_to_index, targets_to_index):
     n_episodes = len(data)
-    # n_books = len(b2i)
-    # x = np.zeros((n_episodes, 200, seq_len), dtype=np.int32)
-    # y = np.zeros((n_episodes, 200, 2), dtype=np.int32)
 
     x = np.zeros((n_episodes, seq_len, 1), dtype=np.int32)
     y = np.zeros((n_episodes, 2), dtype=np.int32)
-
-    # print(f"data type: {type(data)}")
-    # print(f"len(data): {len(data)}")
-    # print(f"data: {data[0]}")
 
     idx = 0
     n_early_cutoff = 0
     n_unks = 0
     n_tks = 0
 
-    # for episode in data:
-    # for instruction_idx, (instruction, label) in enumerate(episode):
     for instruction, label in data:
         instruction = preprocess_string(instruction)
         action, target = label
-        # x[idx][instruction_idx][0] = vocab_to_index["<start>"]
         x[idx][0] = vocab_to_index["<start>"]
         jdx = 1
         for word in instruction.split():
             if len(word) > 0:
-                # x[idx][instruction_idx][jdx] = (
-                #     vocab_to_index[word]
-                #     if word in vocab_to_index
-                #     else vocab_to_index["<unk>"]
-                # )
                 x[idx][jdx][0] = (
                     vocab_to_index[word]
                     if word in vocab_to_index
                     else vocab_to_index["<unk>"]
                 )
-                # n_unks += 1 if x[idx][instruction_idx][jdx] == vocab_to_index["<unk>"] else 0
                 n_unks += 1 if x[idx][jdx][0] == vocab_to_index["<unk>"] else 0
                 n_tks += 1
                 jdx += 1
                 if jdx == seq_len - 1:
                     n_early_cutoff += 1
                     break
-        # x[idx][instruction_idx][jdx] = vocab_to_index["<end>"]
-        # y[idx][instruction_idx][0] = actions_to_index[action]
-        # y[idx][instruction_idx][1] = targets_to_index[target]
         x[idx][jdx][0] = vocab_to_index["<end>"]
         y[idx][0] = actions_to_index[action]
         y[idx][1] = targets_to_index[target]
@@ -164,14 +81,6 @@ def setup_dataloader(args):
         data = json.load(f)
         train_data = data["train"]
         validation_data = data["valid_seen"]
-
-    lens = [len(episode) for episode in train_data]
-    len_counter = Counter(lens)
-    print(f"len_counter: {len_counter}")
-
-    # print(f"len(train_data): {len(train_data)}")
-    # print(f"train_data.shape: {np.asarray(train_data).shape}")
-    # print(f"train_data: {train_data}")
 
     vocab_to_index, index_to_vocab, len_cutoff = build_tokenizer_table(train_data)
     (
@@ -294,15 +203,9 @@ def train_epoch(
         # put model inputs to device
         inputs, labels = inputs.to(device), labels.to(device)
 
-        # print(f"inputs.shape: {inputs.shape}")
-
         # calculate the loss and train accuracy and perform backprop
         # NOTE: feel free to change the parameters to the model forward pass here + outputs
         actions_out, targets_out = model(inputs)
-        # model_output = model(inputs.float())
-        # actions_out, targets_out = model_output[:, 0], model_output[:, 1]
-
-        # print(f"model_output.shape: {model_output.shape}")
 
         # calculate the action and target prediction loss
         # NOTE: we assume that labels is a tensor of size Bx2 where labels[:, 0] is the
@@ -324,14 +227,8 @@ def train_epoch(
 
         # take the prediction with the highest probability
         # NOTE: this could change depending on if you apply Sigmoid in your forward pass
-        # print(f"type(actions_out): {type(actions_out)}")
         action_preds_ = actions_out.argmax(-1)
         target_preds_ = targets_out.argmax(-1)
-        # print(f"actions_out.shape: {actions_out.shape}")
-        # print(f"actions_out: {actions_out}")
-        # action_preds_ = torch.max(actions_out)
-        # target_preds_ = torch.max(targets_out)
-        # print(f"action_preds_.shape: {action_preds_.shape}")
 
         # aggregate the batch predictions + labels
         action_preds.extend(action_preds_.cpu().detach().numpy())
@@ -374,6 +271,15 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
     # weights via backpropagation
     model.train()
 
+    train_action_acc_list = list()
+    train_action_loss_list = list()
+    train_target_acc_list = list()
+    train_target_loss_list = list()
+    validation_action_acc_list = list()
+    validation_action_loss_list = list()
+    validation_target_acc_list = list()
+    validation_target_loss_list = list()
+
     for epoch in tqdm.tqdm(range(args.num_epochs)):
 
         # train single epoch
@@ -401,6 +307,11 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
             f"train action acc : {train_action_acc} | train target acc: {train_target_acc}"
         )
 
+        train_action_acc_list.append(train_action_acc)
+        train_action_loss_list.append(train_action_loss)
+        train_target_acc_list.append(train_target_acc)
+        train_target_loss_list.append(train_target_loss)
+
         # run validation every so often
         # during eval, we run a forward pass through the model and compute
         # loss and accuracy but we don't update the model weights
@@ -422,12 +333,36 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
                 f"val action acc : {val_action_acc} | val target losaccs: {val_target_acc}"
             )
 
+            validation_action_acc_list.append(val_action_acc)
+            validation_action_loss_list.append(val_action_loss)
+            validation_target_acc_list.append(val_target_acc)
+            validation_target_loss_list.append(val_target_loss)
+
     # ================== TODO: CODE HERE ================== #
     # Task: Implement some code to keep track of the model training and
     # evaluation loss. Use the matplotlib library to plot
     # 4 figures for 1) training loss, 2) training accuracy,
     # 3) validation loss, 4) validation accuracy
     # ===================================================== #
+    fig, axes = plt.subplots(4, 2)
+    axes[0, 0].plot(train_action_acc_list, [i for i in range(len(train_action_acc_list))])
+    axes[0, 0].set_title("Training Accuracy Actions")
+    axes[0, 1].plot(train_action_loss_list, [i for i in range(len(train_action_loss_list))])
+    axes[0, 1].set_title("Training Loss Actions")
+    axes[1, 0].plot(train_target_acc_list, [i for i in range(len(train_target_acc_list))])
+    axes[1, 0].set_title("Training Accuracy Targets")
+    axes[1, 1].plot(train_target_loss_list, [i for i in range(len(train_target_loss_list))])
+    axes[1, 1].set_title("Training Loss Targets")
+    axes[2, 0].plot(validation_action_acc_list, [i for i in range(len(validation_action_acc_list))])
+    axes[2, 0].set_title("Validation Accuracy Actions")
+    axes[2, 1].plot(validation_action_loss_list, [i for i in range(len(validation_action_loss_list))])
+    axes[2, 1].set_title("Validation Loss Actions")
+    axes[3, 0].plot(validation_target_acc_list, [i for i in range(len(validation_target_acc_list))])
+    axes[3, 0].set_title("Validation Accuracy Targets")
+    axes[3, 1].plot(validation_target_loss_list, [i for i in range(len(validation_target_loss_list))])
+    axes[3, 1].set_title("Validation Loss Targets")
+
+    plt.show()
 
 
 def main(args):

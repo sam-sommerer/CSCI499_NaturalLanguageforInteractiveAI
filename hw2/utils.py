@@ -1,6 +1,7 @@
 import json
 import gensim
 import tqdm
+import torch
 
 
 def read_analogies(analogies_fn):
@@ -24,3 +25,18 @@ def save_word2vec_format(fname, model, i2v):
                     "%s %s\n" % (word, " ".join("%f" % val for val in row))
                 )
             )
+
+
+def convert_indices_to_multihot(indices_batch, output_shape):
+    word_indices = []
+
+    for i, indices in enumerate(indices_batch):
+        for index in indices:
+            word_indices.append([i, index])
+
+    word_indices_tensor = torch.tensor(word_indices)
+
+    multihot_vectors = torch.zeros(output_shape)
+    multihot_vectors[word_indices_tensor[:, 0], word_indices_tensor[:, 1]] += 1
+
+    return multihot_vectors

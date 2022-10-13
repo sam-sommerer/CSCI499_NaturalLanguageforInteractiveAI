@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 from eval_utils import downstream_validation
+from model import SkipgramModel
 import utils
 import data_utils
 
@@ -62,7 +63,7 @@ def setup_dataloader(args):
             input_word = curr_context[context_size + 1]
             curr_context.pop(context_size + 1)
 
-            input_words.append(input_words)
+            input_words.append(input_word)
             contexts.append(curr_context)
 
     x_train, x_val, y_train, y_val = train_test_split(
@@ -75,9 +76,11 @@ def setup_dataloader(args):
     train_data = TensorDataset(x_train, y_train)
     val_data = TensorDataset(x_val, y_val)
 
-    train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True)
+    train_loader = DataLoader(
+        dataset=train_data, batch_size=args.batch_size, shuffle=True
+    )
     val_loader = DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=True)
-    return train_loader, val_loader
+    return train_loader, val_loader, index_to_vocab
 
 
 def setup_model(args):
@@ -88,7 +91,7 @@ def setup_model(args):
     # ================== TODO: CODE HERE ================== #
     # Task: Initialize your CBOW or Skip-Gram model.
     # ===================================================== #
-    model = None
+    model = SkipgramModel(vocab_size=args.vocab_size, embedding_dim=args.embedding_dim)
     return model
 
 
@@ -132,9 +135,15 @@ def train_epoch(
         # calculate the loss and train accuracy and perform backprop
         # NOTE: feel free to change the parameters to the model forward pass here + outputs
         pred_logits = model(inputs, labels)
+        topk_indices = torch.topk(pred_logits, 2, sorted=False).indices
+
+        #  Both of these should be of shape args.batch_size, args.vocab_size
+        multihot_pred_vectors = utils.convert_indices_to_multihot(topk_indices, pred_logits.size())
+        multihot_label_vectors = utils.convert_indices_to_multihot(labels, pred_logits.size())
+
 
         # calculate prediction loss
-        loss = criterion(pred_logits.squeeze(), labels)
+        loss = criterion(multihot_pred_vectors.squeeze(), multihot_label_vectors.squeeze())
 
         # step optimizer and compute gradients during training
         if training:
@@ -150,7 +159,7 @@ def train_epoch(
         pred_labels.extend(preds.cpu().numpy())
         target_labels.extend(labels.cpu().numpy())
 
-    acc = accuracy_score(pred_labels, target_labels)
+    acc = accuracy_score(pred_labels, target_labels)  # may need to change this/implement new accuracy function
     epoch_loss /= len(loader)
 
     return epoch_loss, acc
@@ -190,7 +199,7 @@ def main(args):
         return
 
     # get dataloaders
-    train_loader, val_loader = setup_dataloader(args)
+    train_loader, val_loader, i2v = setup_dataloader(args)  # i2v is index_to_vocab
     loaders = {"train": train_loader, "val": val_loader}
 
     # build model
@@ -330,6 +339,13 @@ if __name__ == "__main__":
         default=25,
         type=int,
         help="percentage of dataset to put in test split",
+    )
+
+    parser.add_argument(
+        "--embedding_dim",
+        default=16,
+        type=int,
+        help="dimension of embedding vectors",
     )
 
     args = parser.parse_args()

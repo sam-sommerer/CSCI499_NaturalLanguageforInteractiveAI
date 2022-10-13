@@ -2,6 +2,7 @@ import argparse
 import os
 import tqdm
 import torch
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 from eval_utils import downstream_validation
@@ -33,6 +34,9 @@ def setup_dataloader(args):
         suggested_padding_len,
     )
 
+    print(f"encoded_sentences: {encoded_sentences}")
+    print(f"lens: {lens}")
+
     # ================== TODO: CODE HERE ================== #
     # Task: Given the tokenized and encoded text, you need to
     # create inputs to the LM model you want to train.
@@ -44,6 +48,16 @@ def setup_dataloader(args):
     # (you can use utils functions) and create respective
     # dataloaders.
     # ===================================================== #
+
+    context_size = args.context_size
+    input_words = []
+    context = []
+
+    for sentence, length in zip(encoded_sentences, lens):
+        for i in range(length - (2 * context_size + 1) + 1):
+
+
+    train, test = train_test_split(encoded_sentences, )
 
     train_loader = None
     val_loader = None
@@ -146,7 +160,9 @@ def validate(args, model, loader, optimizer, criterion, device):
 
 
 def main(args):
-    device = utils.get_device(args.force_cpu)
+    # device = utils.get_device(args.force_cpu)
+    # device = torch.device()
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # load analogies for downstream eval
     external_val_analogies = utils.read_analogies(args.analogies_fn)
@@ -219,8 +235,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output_dir", type=str, help="where to save training outputs")
-    parser.add_argument("--data_dir", type=str, help="where the book dataset is stored")
+    parser.add_argument("--output_dir", type=str, help="where to save training outputs", default="output_dir")
+    parser.add_argument("--data_dir", type=str, help="where the book dataset is stored", default="books")
     parser.add_argument(
         "--downstream_eval",
         action="store_true",
@@ -242,7 +258,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--force_cpu", action="store_true", help="debug mode")
     parser.add_argument(
-        "--analogies_fn", type=str, help="filepath to the analogies json file"
+        "--analogies_fn", type=str, help="filepath to the analogies json file", default="analogies_v3000_1309.json"
     )
     parser.add_argument(
         "--word_vector_fn", type=str, help="filepath to store the learned word vectors",
@@ -267,6 +283,13 @@ if __name__ == "__main__":
     # Task (optional): Add any additional command line
     # parameters you may need here
     # ===================================================== #
+
+    parser.add_argument(
+        "--context_size",
+        default=2,
+        type=int,
+        help="context size",
+    )
 
     args = parser.parse_args()
     main(args)

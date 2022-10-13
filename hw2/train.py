@@ -2,6 +2,8 @@ import argparse
 import os
 import tqdm
 import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
@@ -34,8 +36,8 @@ def setup_dataloader(args):
         suggested_padding_len,
     )
 
-    print(f"encoded_sentences: {encoded_sentences}")
-    print(f"lens: {lens}")
+    # print(f"encoded_sentences: {encoded_sentences}")
+    # print(f"lens: {lens}")
 
     # ================== TODO: CODE HERE ================== #
     # Task: Given the tokenized and encoded text, you need to
@@ -51,16 +53,30 @@ def setup_dataloader(args):
 
     context_size = args.context_size
     input_words = []
-    context = []
+    contexts = []
 
     for sentence, length in zip(encoded_sentences, lens):
-        for i in range(length - (2 * context_size + 1) + 1):
+        for i in range(length - ((2 * context_size) + 1) + 1):
+            curr_context = sentence[i : ((2 * context_size) + 1) + 1]
 
+            input_word = curr_context[context_size + 1]
+            curr_context.pop(context_size + 1)
 
-    train, test = train_test_split(encoded_sentences, )
+            input_words.append(input_words)
+            contexts.append(curr_context)
 
-    train_loader = None
-    val_loader = None
+    x_train, x_val, y_train, y_val = train_test_split(
+        input_words,
+        contexts,
+        test_size=args.test_split / 100,
+        random_state=args.seed_value,
+    )
+
+    train_data = TensorDataset(x_train, y_train)
+    val_data = TensorDataset(x_val, y_val)
+
+    train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True)
+    val_loader = DataLoader(dataset=val_data, batch_size=args.batch_size, shuffle=True)
     return train_loader, val_loader
 
 
@@ -83,11 +99,11 @@ def setup_optimizer(args, model):
         - optimizer: torch.optim
     """
     # ================== TODO: CODE HERE ================== #
-    # Task: Initialize the loss function for predictions. 
+    # Task: Initialize the loss function for predictions.
     # Also initialize your optimizer.
     # ===================================================== #
-    criterion = None
-    optimizer = None
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters())
     return criterion, optimizer
 
 
@@ -162,7 +178,7 @@ def validate(args, model, loader, optimizer, criterion, device):
 def main(args):
     # device = utils.get_device(args.force_cpu)
     # device = torch.device()
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # load analogies for downstream eval
     external_val_analogies = utils.read_analogies(args.analogies_fn)
@@ -226,7 +242,6 @@ def main(args):
             # evaluate learned embeddings on a downstream task
             downstream_validation(word_vec_file, external_val_analogies)
 
-
         if epoch % args.save_every == 0:
             ckpt_file = os.path.join(args.output_dir, "model.ckpt")
             print("saving model to ", ckpt_file)
@@ -235,15 +250,22 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output_dir", type=str, help="where to save training outputs", default="output_dir")
-    parser.add_argument("--data_dir", type=str, help="where the book dataset is stored", default="books")
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        help="where to save training outputs",
+        default="output_dir",
+    )
+    parser.add_argument(
+        "--data_dir", type=str, help="where the book dataset is stored", default="books"
+    )
     parser.add_argument(
         "--downstream_eval",
         action="store_true",
         help="run downstream eval on trained word vecs",
     )
     # ======================= NOTE ======================== #
-    # If you adjust the vocab_size down below 3000, there 
+    # If you adjust the vocab_size down below 3000, there
     # may be analogies in the downstream evaluation that have
     # words that are not in your vocabulary, resulting in
     # automatic (currently) zero score for an ABCD where one
@@ -258,11 +280,16 @@ if __name__ == "__main__":
     )
     parser.add_argument("--force_cpu", action="store_true", help="debug mode")
     parser.add_argument(
-        "--analogies_fn", type=str, help="filepath to the analogies json file", default="analogies_v3000_1309.json"
+        "--analogies_fn",
+        type=str,
+        help="filepath to the analogies json file",
+        default="analogies_v3000_1309.json",
     )
     parser.add_argument(
-        "--word_vector_fn", type=str, help="filepath to store the learned word vectors",
-        default='learned_word_vectors.txt'
+        "--word_vector_fn",
+        type=str,
+        help="filepath to store the learned word vectors",
+        default="learned_word_vectors.txt",
     )
     parser.add_argument(
         "--num_epochs", default=30, type=int, help="number of training epochs"
@@ -289,6 +316,20 @@ if __name__ == "__main__":
         default=2,
         type=int,
         help="context size",
+    )
+
+    parser.add_argument(
+        "--seed_value",
+        default=42,
+        type=int,
+        help="random seed",
+    )
+
+    parser.add_argument(
+        "--test_split",
+        default=25,
+        type=int,
+        help="percentage of dataset to put in test split",
     )
 
     args = parser.parse_args()

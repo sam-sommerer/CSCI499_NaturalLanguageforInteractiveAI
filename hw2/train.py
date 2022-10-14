@@ -3,6 +3,7 @@ import os
 import tqdm
 import torch
 import torch.nn as nn
+import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -38,7 +39,9 @@ def setup_dataloader(args):
     )
 
     # print(f"encoded_sentences: {encoded_sentences}")
+    # print(f"encoded_sentences.shape: {encoded_sentences.shape}")
     # print(f"lens: {lens}")
+    # print(f"lens.shape: {lens.shape}")
 
     # ================== TODO: CODE HERE ================== #
     # Task: Given the tokenized and encoded text, you need to
@@ -56,12 +59,12 @@ def setup_dataloader(args):
     input_words = []
     contexts = []
 
-    for sentence, length in zip(encoded_sentences, lens):
+    for sentence, length in zip(encoded_sentences, lens.squeeze()):
         for i in range(length - ((2 * context_size) + 1) + 1):
-            curr_context = sentence[i : ((2 * context_size) + 1) + 1]
+            curr_context = sentence[i : i + ((2 * context_size) + 1)]
 
             input_word = curr_context[context_size + 1]
-            curr_context.pop(context_size + 1)
+            curr_context = np.delete(curr_context, context_size + 1)
 
             input_words.append(input_word)
             contexts.append(curr_context)
@@ -73,8 +76,8 @@ def setup_dataloader(args):
         random_state=args.seed_value,
     )
 
-    train_data = TensorDataset(x_train, y_train)
-    val_data = TensorDataset(x_val, y_val)
+    train_data = TensorDataset(torch.tensor(x_train), torch.tensor(y_train))
+    val_data = TensorDataset(torch.tensor(x_val), torch.tensor(torch.tensor(y_val)))
 
     train_loader = DataLoader(
         dataset=train_data, batch_size=args.batch_size, shuffle=True
@@ -134,16 +137,25 @@ def train_epoch(
 
         # calculate the loss and train accuracy and perform backprop
         # NOTE: feel free to change the parameters to the model forward pass here + outputs
-        pred_logits = model(inputs, labels)
+        # pred_logits = model(inputs, labels)
+        pred_logits = model(inputs)
         topk_indices = torch.topk(pred_logits, 2, sorted=False).indices
 
         #  Both of these should be of shape args.batch_size, args.vocab_size
-        multihot_pred_vectors = utils.convert_indices_to_multihot(topk_indices, pred_logits.size())
-        multihot_label_vectors = utils.convert_indices_to_multihot(labels, pred_logits.size())
+        multihot_pred_vectors = utils.convert_indices_to_multihot(
+            topk_indices, pred_logits.size()
+        )
+        multihot_label_vectors = utils.convert_indices_to_multihot(
+            labels, pred_logits.size()
+        )
 
+        multihot_pred_vectors.requires_grad_()
+        multihot_label_vectors.requires_grad_()
 
         # calculate prediction loss
-        loss = criterion(multihot_pred_vectors.squeeze(), multihot_label_vectors.squeeze())
+        loss = criterion(
+            multihot_pred_vectors.squeeze(), multihot_label_vectors.squeeze()
+        )
 
         # step optimizer and compute gradients during training
         if training:
@@ -159,7 +171,9 @@ def train_epoch(
         pred_labels.extend(preds.cpu().numpy())
         target_labels.extend(labels.cpu().numpy())
 
-    acc = accuracy_score(pred_labels, target_labels)  # may need to change this/implement new accuracy function
+    acc = accuracy_score(
+        pred_labels, target_labels
+    )  # may need to change this/implement new accuracy function
     epoch_loss /= len(loader)
 
     return epoch_loss, acc

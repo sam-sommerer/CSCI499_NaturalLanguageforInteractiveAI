@@ -8,7 +8,7 @@ class SkipgramModel(nn.Module):
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
 
-        self.embedding = nn.Embedding(
+        self.embed = nn.Embedding(
             num_embeddings=self.vocab_size,
             embedding_dim=self.embedding_dim,
             padding_idx=0,
@@ -17,6 +17,6 @@ class SkipgramModel(nn.Module):
         self.fc1 = nn.Linear(self.embedding_dim, self.vocab_size)  # output layer
 
     def forward(self, x):
-        embeddings = self.embedding(x).squeeze()
+        embeddings = self.embed(x).squeeze()
 
         return self.fc1(embeddings)

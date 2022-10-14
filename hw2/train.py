@@ -260,7 +260,7 @@ def main(args):
             # ===================================================== #
 
             # save word vectors
-            word_vec_file = os.path.join(args.outputs_dir, args.word_vector_fn)
+            word_vec_file = os.path.join(args.output_dir, args.word_vector_fn)
             print("saving word vec to ", word_vec_file)
             utils.save_word2vec_format(word_vec_file, model, i2v)
 

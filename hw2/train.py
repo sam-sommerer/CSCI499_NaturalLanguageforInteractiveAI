@@ -8,7 +8,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-from eval_utils import downstream_validation
+from eval_utils import multiclass_multilabel_accuracy_score, downstream_validation
 from model import SkipgramModel
 import utils
 import data_utils
@@ -172,9 +172,10 @@ def train_epoch(
         pred_labels.extend(preds.cpu().numpy())
         target_labels.extend(labels.cpu().numpy())
 
-    acc = accuracy_score(
-        pred_labels, target_labels
-    )  # may need to change this/implement new accuracy function
+    # acc = accuracy_score(
+    #     pred_labels, target_labels
+    # )  # may need to change this/implement new accuracy function
+    acc = multiclass_multilabel_accuracy_score(pred_labels, target_labels)
     epoch_loss /= len(loader)
 
     return epoch_loss, acc

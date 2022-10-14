@@ -167,7 +167,8 @@ def train_epoch(
         epoch_loss += loss.item()
 
         # compute metrics
-        preds = pred_logits.argmax(-1)
+        # preds = pred_logits.argmax(-1)
+        preds = topk_indices
         pred_labels.extend(preds.cpu().numpy())
         target_labels.extend(labels.cpu().numpy())
 

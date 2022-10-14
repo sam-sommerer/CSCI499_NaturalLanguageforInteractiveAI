@@ -2,7 +2,7 @@ import torch.nn as nn
 
 
 class SkipgramModel(nn.Module):
-    def __init__(self, vocab_size=3000, embedding_dim=16):
+    def __init__(self, vocab_size=3000, embedding_dim=128):
         super(SkipgramModel, self).__init__()
 
         self.vocab_size = vocab_size

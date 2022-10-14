@@ -7,8 +7,12 @@ def multiclass_multilabel_accuracy_score(preds, labels):
     accuracy_sum = 0
 
     for pred_indices, label_indices in zip(preds, labels):
-        curr_accuracy = accuracy_score(label_indices, pred_indices)
-        accuracy_sum += curr_accuracy
+        # curr_accuracy = accuracy_score(label_indices, pred_indices)
+        pred_indices_set = set(pred_indices)
+        label_indices_set = set(label_indices)
+
+        num_intersecting = len(pred_indices_set.intersection(label_indices_set))
+        accuracy_sum += num_intersecting / len(label_indices_set)
 
     overall_accuracy = accuracy_sum / len(preds)
     return overall_accuracy

@@ -1,5 +1,17 @@
 import gensim
 import tqdm
+from sklearn.metrics import accuracy_score
+
+
+def multiclass_multilabel_accuracy_score(preds, labels):
+    accuracy_sum = 0
+
+    for pred_indices, label_indices in zip(preds, labels):
+        curr_accuracy = accuracy_score(label_indices, pred_indices)
+        accuracy_sum += curr_accuracy
+
+    overall_accuracy = accuracy_sum / len(preds)
+    return overall_accuracy
 
 
 def downstream_validation(word_vectors_fn, external_val_analogies):

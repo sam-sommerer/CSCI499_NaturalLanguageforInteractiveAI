@@ -359,7 +359,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--embedding_dim",
-        default=16,
+        default=128,
         type=int,
         help="dimension of embedding vectors",
     )

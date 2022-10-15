@@ -1,6 +1,7 @@
 import argparse
 import os
 import tqdm
+import pickle
 import torch
 import torch.nn as nn
 import numpy as np
@@ -225,6 +226,11 @@ def main(args):
     # get optimizer
     criterion, optimizer = setup_optimizer(args, model)
 
+    train_losses = []
+    train_accs = []
+    val_losses = []
+    val_accs = []
+
     for epoch in range(args.num_epochs):
         # train model for a single epoch
         print(f"Epoch {epoch}")
@@ -237,6 +243,9 @@ def main(args):
             device,
         )
 
+        train_losses.append(train_loss)
+        train_accs.append(train_acc)
+
         print(f"train loss : {train_loss} | train acc: {train_acc}")
 
         if epoch % args.val_every == 0:
@@ -248,6 +257,10 @@ def main(args):
                 criterion,
                 device,
             )
+
+            val_losses.append(val_loss)
+            val_accs.append(val_acc)
+
             print(f"val loss : {val_loss} | val acc: {val_acc}")
 
             # ======================= NOTE ======================== #
@@ -271,6 +284,24 @@ def main(args):
             ckpt_file = os.path.join(args.output_dir, "model.ckpt")
             print("saving model to ", ckpt_file)
             torch.save(model, ckpt_file)
+
+        pickle_output_dir = "pickles/"
+        train_losses_fn = pickle_output_dir + "train_losses.pkl"
+        train_accs_fn = pickle_output_dir + "train_accs.pkl"
+        val_losses_fn = pickle_output_dir + "val_losses.pkl"
+        val_accs_fn = pickle_output_dir + "val_accs.pkl"
+
+        with open(train_losses_fn, "wb") as f:
+            pickle.dump(train_losses, f)
+
+        with open(train_accs_fn, "wb") as f:
+            pickle.dump(train_accs, f)
+
+        with open(val_losses_fn, "wb") as f:
+            pickle.dump(val_losses, f)
+
+        with open(val_accs_fn, "wb") as f:
+            pickle.dump(val_accs, f)
 
 
 if __name__ == "__main__":

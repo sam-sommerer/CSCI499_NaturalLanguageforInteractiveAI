@@ -132,4 +132,8 @@ dmypy.json
 
 
 hw2/books/*
-hw2/output_dir
+hw2/plot.py
+.DS_STORE
+output.txt
+output_0.txt
+pickles/

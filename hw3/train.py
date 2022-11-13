@@ -15,23 +15,28 @@ from utils import (
 )
 
 
-def encode_data(data, vocab_to_index, seq_len, actions_to_index, targets_to_index):
+def encode_data(data, vocab_to_index, instruction_cutoff_len, label_seq_len, actions_to_index, targets_to_index):
     n_episodes = len(data)
 
-    x = np.zeros((n_episodes, seq_len, 1), dtype=np.int32)
-    y = np.zeros((n_episodes, 2), dtype=np.int32)
+    x = np.zeros((n_episodes, instruction_cutoff_len, 1), dtype=np.int32)
+    y = np.zeros((n_episodes, label_seq_len, 2), dtype=np.int32)  # label_seq_len is N
 
     idx = 0
     n_early_cutoff = 0
     n_unks = 0
     n_tks = 0
 
-    for instruction, label in data:
-        instruction = preprocess_string(instruction)
-        action, target = label
+    for episode in data:
+        instructions_concat = " ".join([instruction for instruction, _ in episode])
+        actions_targets_concat = [label for _, label in episode]
+
+        instruction = preprocess_string(instructions_concat)
+        # action, target = label
         x[idx][0] = vocab_to_index["<start>"]
         jdx = 1
-        for word in instruction.split():
+
+        # encoding instructions for whole episode
+        for word in instruction.split():  # do we need to worry about adding padding here?
             if len(word) > 0:
                 x[idx][jdx][0] = (
                     vocab_to_index[word]
@@ -41,12 +46,22 @@ def encode_data(data, vocab_to_index, seq_len, actions_to_index, targets_to_inde
                 n_unks += 1 if x[idx][jdx][0] == vocab_to_index["<unk>"] else 0
                 n_tks += 1
                 jdx += 1
-                if jdx == seq_len - 1:
+                if jdx == instruction_cutoff_len - 1:
                     n_early_cutoff += 1
                     break
+
         x[idx][jdx][0] = vocab_to_index["<end>"]
-        y[idx][0] = actions_to_index[action]
-        y[idx][1] = targets_to_index[target]
+
+        # encoding labels
+        for i, (action, target) in enumerate(actions_targets_concat):
+            if i == label_seq_len:
+                break
+
+            y[idx][i][0] = actions_to_index[action]
+            y[idx][i][1] = targets_to_index[target]
+
+        # y[idx][0] = actions_to_index[action]
+        # y[idx][1] = targets_to_index[target]
         idx += 1
     print(
         "INFO: had to represent %d/%d (%.4f) tokens as unk with vocab limit %d"
@@ -54,7 +69,7 @@ def encode_data(data, vocab_to_index, seq_len, actions_to_index, targets_to_inde
     )
     print(
         "INFO: cut off %d instances at len %d before true ending"
-        % (n_early_cutoff, seq_len)
+        % (n_early_cutoff, instruction_cutoff_len)
     )
     print("INFO: encoded %d instances without regard to order" % idx)
     return x, y
@@ -88,7 +103,7 @@ def setup_dataloader(args):
         index_to_targets,
     ) = build_output_tables(train_data)
     train_data = [
-        instruction for instruction_set in train_data for instruction in instruction_set
+        episode for episode in train_data
     ]
     train_np_x, train_np_y = encode_data(
         data=train_data,

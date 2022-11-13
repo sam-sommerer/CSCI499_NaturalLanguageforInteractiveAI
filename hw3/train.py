@@ -1,7 +1,10 @@
 import tqdm
 import torch
 import argparse
+import numpy as np
+import json
 from sklearn.metrics import accuracy_score
+from torch.utils.data import TensorDataset, DataLoader
 
 from utils import (
     get_device,
@@ -10,6 +13,51 @@ from utils import (
     build_output_tables,
     prefix_match
 )
+
+
+def encode_data(data, vocab_to_index, seq_len, actions_to_index, targets_to_index):
+    n_episodes = len(data)
+
+    x = np.zeros((n_episodes, seq_len, 1), dtype=np.int32)
+    y = np.zeros((n_episodes, 2), dtype=np.int32)
+
+    idx = 0
+    n_early_cutoff = 0
+    n_unks = 0
+    n_tks = 0
+
+    for instruction, label in data:
+        instruction = preprocess_string(instruction)
+        action, target = label
+        x[idx][0] = vocab_to_index["<start>"]
+        jdx = 1
+        for word in instruction.split():
+            if len(word) > 0:
+                x[idx][jdx][0] = (
+                    vocab_to_index[word]
+                    if word in vocab_to_index
+                    else vocab_to_index["<unk>"]
+                )
+                n_unks += 1 if x[idx][jdx][0] == vocab_to_index["<unk>"] else 0
+                n_tks += 1
+                jdx += 1
+                if jdx == seq_len - 1:
+                    n_early_cutoff += 1
+                    break
+        x[idx][jdx][0] = vocab_to_index["<end>"]
+        y[idx][0] = actions_to_index[action]
+        y[idx][1] = targets_to_index[target]
+        idx += 1
+    print(
+        "INFO: had to represent %d/%d (%.4f) tokens as unk with vocab limit %d"
+        % (n_unks, n_tks, n_unks / n_tks, len(vocab_to_index))
+    )
+    print(
+        "INFO: cut off %d instances at len %d before true ending"
+        % (n_early_cutoff, seq_len)
+    )
+    print("INFO: encoded %d instances without regard to order" % idx)
+    return x, y
 
 
 def setup_dataloader(args):
@@ -27,9 +75,65 @@ def setup_dataloader(args):
 
     # Hint: use the helper functions provided in utils.py
     # ===================================================== #
-    train_loader = None
-    val_loader = None
-    return train_loader, val_loader
+    with open(args.in_data_fn) as f:
+        data = json.load(f)
+        train_data = data["train"]
+        validation_data = data["valid_seen"]
+
+    vocab_to_index, index_to_vocab, len_cutoff = build_tokenizer_table(train_data)
+    (
+        actions_to_index,
+        index_to_actions,
+        targets_to_index,
+        index_to_targets,
+    ) = build_output_tables(train_data)
+    train_data = [
+        instruction for instruction_set in train_data for instruction in instruction_set
+    ]
+    train_np_x, train_np_y = encode_data(
+        data=train_data,
+        vocab_to_index=vocab_to_index,
+        seq_len=len_cutoff,
+        actions_to_index=actions_to_index,
+        targets_to_index=targets_to_index,
+    )
+    train_dataset = TensorDataset(
+        torch.from_numpy(train_np_x), torch.from_numpy(train_np_y)
+    )
+
+    validation_data = [
+        instruction
+        for instruction_set in validation_data
+        for instruction in instruction_set
+    ]
+    validation_np_x, validation_np_y = encode_data(
+        data=validation_data,
+        vocab_to_index=vocab_to_index,
+        seq_len=len_cutoff,
+        actions_to_index=actions_to_index,
+        targets_to_index=targets_to_index,
+    )
+    validation_dataset = TensorDataset(
+        torch.from_numpy(validation_np_x), torch.from_numpy(validation_np_y)
+    )
+
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size)
+    validation_loader = DataLoader(
+        validation_dataset, shuffle=True, batch_size=args.batch_size
+    )
+
+    num_actions = len(index_to_actions)
+    num_targets = len(index_to_targets)
+    vocab_size = len(vocab_to_index)
+
+    return (
+        train_loader,
+        validation_loader,
+        len_cutoff,
+        num_actions,
+        num_targets,
+        vocab_size,
+    )
 
 
 def setup_model(args):

@@ -28,7 +28,7 @@ class Decoder(nn.Module):
     def __init__(self):
         pass
 
-    def forward(self, x):
+    def forward(self, x):  # pass in true labels in here too for teacher forcing?
         pass
 
 

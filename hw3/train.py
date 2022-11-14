@@ -35,7 +35,7 @@ def encode_data(
 
     for episode in data:
         instructions_concat = " ".join([instruction for instruction, _ in episode])
-        actions_targets_concat = [label for _, label in episode]
+        actions_targets = [label for _, label in episode]
 
         instruction = preprocess_string(instructions_concat)
         # action, target = label
@@ -66,13 +66,18 @@ def encode_data(
                 x[idx][i][0] = vocab_to_index["<pad>"]
 
         # encoding labels
-        for i, (action, target) in enumerate(actions_targets_concat):
+        for i, (action, target) in enumerate(actions_targets):
             # do we need to add padding to action, target?
             if i == label_seq_len:
                 break
 
             y[idx][i][0] = actions_to_index[action]
             y[idx][i][1] = targets_to_index[target]
+
+            if i == len(actions_targets) - 1 and i + 1 < label_seq_len:
+                y[idx][i + 1][0] =
+
+
 
         # y[idx][0] = actions_to_index[action]
         # y[idx][1] = targets_to_index[target]

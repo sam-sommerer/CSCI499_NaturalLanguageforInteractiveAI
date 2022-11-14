@@ -228,7 +228,7 @@ class EncoderDecoder(torch.nn.Module):
                                                                   num_classes=self.num_targets + 3)
 
                 decoder_input = torch.cat((true_action_one_hot, true_target_one_hot))  # concat along dimension 0?
-        else:
+        else:  # student forcing
             for i in range(self.num_predictions):
                 action_pred, target_pred, hidden_state, internal_state = self.decoder(
                     decoder_input, hidden_state, internal_state
@@ -240,7 +240,12 @@ class EncoderDecoder(torch.nn.Module):
                 max_prob_action_idx = torch.topk(action_pred, 1).indices[0]
                 max_prob_target_idx = torch.topk(target_pred, 1).indices[0]
 
-                decoder_input = str((index_to_actions[max_prob_action_idx], index_to_targets[max_prob_target_idx]))
+                true_action_one_hot = torch.nn.functional.one_hot(torch.tensor([max_prob_action_idx]),
+                                                                  num_classes=self.num_actions + 3)
+                true_target_one_hot = torch.nn.functional.one_hot(torch.tensor([max_prob_target_idx]),
+                                                                  num_classes=self.num_targets + 3)
+
+                decoder_input = torch.cat((true_action_one_hot, true_target_one_hot))  # concat along dimension 0?
 
         return action_preds, target_preds
 

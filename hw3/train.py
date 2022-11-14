@@ -14,6 +14,8 @@ from utils import (
     prefix_match,
 )
 
+from model import EncoderDecoder
+
 
 def encode_data(
     data,
@@ -166,7 +168,7 @@ def setup_dataloader(args):
     )
 
 
-def setup_model(args):
+def setup_model(args, vocab_size, encoder_embedding_dim, num_actions, num_targets):
     """
     return:
         - model: YourOwnModelClass
@@ -188,7 +190,18 @@ def setup_model(args):
     # of feeding the model prediction into the recurrent model,
     # you will give the embedding of the target token.
     # ===================================================== #
-    model = None
+    model = EncoderDecoder(
+        vocab_size=vocab_size,
+        encoder_embedding_dim=encoder_embedding_dim,
+        encoder_hidden_size=128,
+        encoder_num_layers=1,
+        decoder_hidden_size=128,
+        decoder_num_layers=1,
+        num_actions=num_actions,
+        num_targets=num_targets,
+        batch_first=True,
+        num_predictions=5,
+    )
     return model
 
 
@@ -214,7 +227,8 @@ def train_epoch(
     model,
     loader,
     optimizer,
-    criterion,
+    action_criterion,
+    target_criterion,
     device,
     training=True,
 ):
@@ -245,9 +259,13 @@ def train_epoch(
 
         # calculate the loss and train accuracy and perform backprop
         # NOTE: feel free to change the parameters to the model forward pass here + outputs
-        output = model(inputs, labels)
+        actions_out, targets_out = model(inputs, labels, teacher_forcing=True)
 
-        loss = criterion(output.squeeze(), labels[:, 0].long())
+        # loss = criterion(output.squeeze(), labels[:, 0].long())
+        action_loss = action_criterion(actions_out.float(), labels[:, 0].long())
+        target_loss = target_criterion(targets_out.float(), labels[:, 1].long())
+
+        loss = action_loss + target_loss
 
         # step optimizer and compute gradients during training
         if training:
@@ -262,8 +280,8 @@ def train_epoch(
         # Feel free to change the input to these functions.
         """
         # TODO: add code to log these metrics
-        em = output == labels
-        prefix_em = prefix_em(output, labels)
+        # em = output == labels
+        # prefix_em = prefix_em(output, labels)
         acc = 0.0
 
         # logging

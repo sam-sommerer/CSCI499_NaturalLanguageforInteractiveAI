@@ -192,7 +192,7 @@ class EncoderDecoder(torch.nn.Module):
         )
 
     # what should the format of true labels be? a string in the format "(action, target)"?
-    def forward(self, x, index_to_actions, index_to_targets, true_labels=None, teacher_forcing=False):
+    def forward(self, x, true_labels=None, teacher_forcing=False):
         output, hidden_state, internal_state = self.encoder(x)  # pass output into decoder
 
         # h_0 = Variable(

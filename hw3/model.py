@@ -65,7 +65,6 @@ class Decoder(torch.nn.Module):
     def __init__(
         self,
         output_size,
-        num_actions_targets_misc,
         hidden_size,
         num_layers,
         num_actions,
@@ -80,7 +79,7 @@ class Decoder(torch.nn.Module):
         self.num_actions = num_actions
         self.num_targets = num_targets
         self.batch_first = batch_first
-        self.num_actions_targets_misc = self.num_actions + self.num_targets + 4
+        self.num_actions_targets_misc = self.num_actions + self.num_targets + 6
 
         # self.embedding = torch.nn.Embedding(
         #     num_embeddings=self.output_size, embedding_dim=self.embedding_dim
@@ -101,10 +100,10 @@ class Decoder(torch.nn.Module):
         # )
 
         # num actions should be like 8
-        self.actions_fc = torch.nn.Linear(self.hidden_size, self.num_actions_targets_misc)
+        self.actions_fc = torch.nn.Linear(self.hidden_size, self.num_actions + 3)
 
         # num targets should be like 80
-        self.targets_fc = torch.nn.Linear(self.hidden_size, self.num_actions_targets_misc)
+        self.targets_fc = torch.nn.Linear(self.hidden_size, self.num_targets + 3)
 
         # self.softmax = torch.nn.LogSoftmax(
         #     dim=0
@@ -163,14 +162,17 @@ class EncoderDecoder(torch.nn.Module):
         encoder_hidden_size,
         encoder_num_layers,
         output_size,
-        decoder_embedding_dim,
         decoder_hidden_size,
         decoder_num_layers,
+        num_actions,
+        num_targets,
         batch_first=True,
         num_predictions=5,
     ):
         super(EncoderDecoder, self).__init__()
 
+        self.num_actions = num_actions
+        self.num_targets = num_targets
         self.num_predictions = num_predictions
 
         self.encoder = Encoder(
@@ -182,9 +184,10 @@ class EncoderDecoder(torch.nn.Module):
         )
         self.decoder = Decoder(
             output_size=output_size,
-            embedding_dim=decoder_embedding_dim,
             hidden_size=decoder_hidden_size,
             num_layers=decoder_num_layers,
+            num_actions=num_actions,
+            num_targets=num_targets,
             batch_first=batch_first,
         )
 
@@ -204,7 +207,11 @@ class EncoderDecoder(torch.nn.Module):
 
         # decoder inputs should be encoded already, concatenate one-hot vectors representing action and target
         # use the indices for actions and targets
-        decoder_input = "<SOS>"
+        # decoder_input = "<SOS>"
+
+        sos_actions = torch.nn.functional.one_hot(torch.tensor([0]), num_classes=self.num_actions + 3)
+        sos_targets = torch.nn.functional.one_hot(torch.tensor([0]), num_classes=self.num_targets + 3)
+        decoder_input = torch.cat((sos_actions, sos_targets))
 
         if teacher_forcing:
             for i in range(self.num_predictions):  # add <pad> after <EOS> occurs for the true label
@@ -213,7 +220,14 @@ class EncoderDecoder(torch.nn.Module):
                 )
                 action_preds.append(action_pred)
                 target_preds.append(target_pred)
-                decoder_input = true_labels[i]
+
+                true_action_idx, true_target_idx = true_labels[i]
+
+                true_action_one_hot = torch.nn.functional.one_hot(torch.tensor([true_action_idx]), num_classes=self.num_actions + 3)
+                true_target_one_hot = torch.nn.functional.one_hot(torch.tensor([true_target_idx]),
+                                                                  num_classes=self.num_targets + 3)
+
+                decoder_input = torch.cat((true_action_one_hot, true_target_one_hot))  # concat along dimension 0?
         else:
             for i in range(self.num_predictions):
                 action_pred, target_pred, hidden_state, internal_state = self.decoder(

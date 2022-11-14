@@ -75,9 +75,7 @@ def encode_data(
             y[idx][i][1] = targets_to_index[target]
 
             if i == len(actions_targets) - 1 and i + 1 < label_seq_len:
-                y[idx][i + 1][0] =
-
-
+                y[idx][i + 1][0] = "<EOS>"
 
         # y[idx][0] = actions_to_index[action]
         # y[idx][1] = targets_to_index[target]

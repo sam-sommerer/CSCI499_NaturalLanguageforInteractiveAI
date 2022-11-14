@@ -202,10 +202,11 @@ def setup_optimizer(args, model):
     # Task: Initialize the loss function for action predictions
     # and target predictions. Also initialize your optimizer.
     # ===================================================== #
-    criterion = None
-    optimizer = None
+    action_criterion = torch.nn.CrossEntropyLoss()
+    target_criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters())
 
-    return criterion, optimizer
+    return action_criterion, target_criterion, optimizer
 
 
 def train_epoch(

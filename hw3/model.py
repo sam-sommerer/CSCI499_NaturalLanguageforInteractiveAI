@@ -62,13 +62,15 @@ class Decoder(torch.nn.Module):
     """
 
     def __init__(
-        self, output_size, embedding_dim, hidden_size, num_layers, batch_first=True
+        self, output_size, embedding_dim, hidden_size, num_layers, num_actions, num_targets, batch_first=True
     ):
         super(Decoder, self).__init__()
         self.output_size = output_size
         self.embedding_dim = embedding_dim
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.num_actions = num_actions
+        self.num_targets = num_targets
         self.batch_first = batch_first
 
         self.embedding = torch.nn.Embedding(
@@ -88,6 +90,11 @@ class Decoder(torch.nn.Module):
             num_layers=self.num_layers,
             batch_first=self.batch_first,
         )
+
+        self.actions_fc = torch.nn.Linear(self.hidden_size, self.num_actions)
+        self.targets_fc = torch.nn.Linear(self.hidden_size, self.num_targets)
+
+        self.softmax = torch.nn.LogSoftmax(dim=0)  # not sure what dim is supposed to be here
 
     def forward(
         self, x, action_hidden_state, action_internal_state, target_hidden_state, target_internal_state
@@ -117,7 +124,10 @@ class Decoder(torch.nn.Module):
             embeds, (target_hidden_state, target_internal_state)
         )  # lstm with input, hidden, and internal state
 
-        return action_output, action_hn, action_cn, target_output, target_hn, target_cn
+        action_pred = self.softmax(self.actions_fc(action_output))
+        target_pred = self.softmax(self.targets_fc(target_output))
+
+        return action_pred, action_output, target_pred, target_output
 
 
 class EncoderDecoder(torch.nn.Module):

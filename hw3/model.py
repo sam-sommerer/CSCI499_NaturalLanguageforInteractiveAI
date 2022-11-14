@@ -75,7 +75,14 @@ class Decoder(torch.nn.Module):
             num_embeddings=self.output_size, embedding_dim=self.embedding_dim
         )
 
-        self.lstm = torch.nn.LSTM(
+        self.action_lstm = torch.nn.LSTM(
+            input_size=self.embedding_dim,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            batch_first=self.batch_first,
+        )
+
+        self.target_lstm = torch.nn.LSTM(
             input_size=self.embedding_dim,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
@@ -83,7 +90,7 @@ class Decoder(torch.nn.Module):
         )
 
     def forward(
-        self, x, hidden_state, internal_state
+        self, x, action_hidden_state, action_internal_state, target_hidden_state, target_internal_state
     ):  # pass in true labels in here too for teacher forcing?
         """
         The first x to be passed into the decoder should be <SOS> and the last should be <EOS>. hidden_state and
@@ -101,11 +108,16 @@ class Decoder(torch.nn.Module):
         embeds = self.embedding(x).squeeze()
 
         # Propagate input through LSTM
-        output, (hn, cn) = self.lstm(
-            embeds, (hidden_state, internal_state)
+        action_output, (action_hn, action_cn) = self.action_lstm(
+            embeds, (action_hidden_state, action_internal_state)
         )  # lstm with input, hidden, and internal state
 
-        return output, hn, cn
+        # Propagate input through LSTM
+        target_output, (target_hn, target_cn) = self.target_lstm(
+            embeds, (target_hidden_state, target_internal_state)
+        )  # lstm with input, hidden, and internal state
+
+        return action_output, action_hn, action_cn, target_output, target_hn, target_cn
 
 
 class EncoderDecoder(torch.nn.Module):
@@ -115,16 +127,38 @@ class EncoderDecoder(torch.nn.Module):
     """
 
     def __init__(
-        self, vocab_size, embedding_dim, hidden_size, num_layers, batch_first=True
+        self,
+        vocab_size,
+        encoder_embedding_dim,
+        encoder_hidden_size,
+        encoder_num_layers,
+        output_size,
+        decoder_embedding_dim,
+        decoder_hidden_size,
+        decoder_num_layers,
+        batch_first=True,
+        num_predictions=5
     ):
         super(EncoderDecoder, self).__init__()
+
+        self.N = num_predictions
+
         self.encoder = Encoder(
             vocab_size=vocab_size,
-            embedding_dim=embedding_dim,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
+            embedding_dim=encoder_embedding_dim,
+            hidden_size=encoder_hidden_size,
+            num_layers=encoder_num_layers,
+            batch_first=batch_first,
+        )
+        self.decoder = Decoder(
+            output_size=output_size,
+            embedding_dim=decoder_embedding_dim,
+            hidden_size=decoder_hidden_size,
+            num_layers=decoder_num_layers,
             batch_first=batch_first,
         )
 
-    def forward(self, x):
+    def forward(self, x, true_labels=None, teacher_forcing=False):
         output, hn, cn = self.encoder(x)  # pass output into decoder
+
+

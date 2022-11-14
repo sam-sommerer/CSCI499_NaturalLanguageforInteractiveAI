@@ -11,11 +11,18 @@ from utils import (
     preprocess_string,
     build_tokenizer_table,
     build_output_tables,
-    prefix_match
+    prefix_match,
 )
 
 
-def encode_data(data, vocab_to_index, instruction_cutoff_len, label_seq_len, actions_to_index, targets_to_index):
+def encode_data(
+    data,
+    vocab_to_index,
+    instruction_cutoff_len,
+    label_seq_len,
+    actions_to_index,
+    targets_to_index,
+):
     n_episodes = len(data)
 
     x = np.zeros((n_episodes, instruction_cutoff_len, 1), dtype=np.int32)
@@ -36,7 +43,9 @@ def encode_data(data, vocab_to_index, instruction_cutoff_len, label_seq_len, act
         jdx = 1
 
         # encoding instructions for whole episode
-        for word in instruction.split():  # do we need to worry about adding padding here?
+        for (
+            word
+        ) in instruction.split():  # do we need to worry about adding padding here?
             if len(word) > 0:
                 x[idx][jdx][0] = (
                     vocab_to_index[word]
@@ -107,9 +116,7 @@ def setup_dataloader(args):
         targets_to_index,
         index_to_targets,
     ) = build_output_tables(train_data)
-    train_data = [
-        episode for episode in train_data
-    ]
+    train_data = [episode for episode in train_data]
     train_np_x, train_np_y = encode_data(
         data=train_data,
         vocab_to_index=vocab_to_index,

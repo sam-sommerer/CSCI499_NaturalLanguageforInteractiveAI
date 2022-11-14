@@ -42,7 +42,7 @@ class Encoder(torch.nn.Module):
             torch.zeros(self.num_layers, x.size(0), self.hidden_size)
         )  # internal state
 
-        # should be shape (batch_size x instruction_cutoff_len x self.embedding_dim) if batch_first == True
+        # should be shape (batch_size x instruction_cutoff_len x self.embedding_dim) if batch_first == True ?
         embeds = self.embedding(x).squeeze()
 
         # Propagate input through LSTM
@@ -61,11 +61,51 @@ class Decoder(torch.nn.Module):
     TODO: edit the forward pass arguments to suit your needs
     """
 
-    def __init__(self):
-        pass
+    def __init__(
+        self, output_size, embedding_dim, hidden_size, num_layers, batch_first=True
+    ):
+        super(Decoder, self).__init__()
+        self.output_size = output_size
+        self.embedding_dim = embedding_dim
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.batch_first = batch_first
 
-    def forward(self, x):  # pass in true labels in here too for teacher forcing?
-        pass
+        self.embedding = torch.nn.Embedding(
+            num_embeddings=self.output_size, embedding_dim=self.embedding_dim
+        )
+
+        self.lstm = torch.nn.LSTM(
+            input_size=self.embedding_dim,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            batch_first=self.batch_first,
+        )
+
+    def forward(
+        self, x, hidden_state, internal_state
+    ):  # pass in true labels in here too for teacher forcing?
+        """
+        The first x to be passed into the decoder should be <SOS> and the last should be <EOS>. hidden_state and
+        internal_state should be the hidden and internal states from the previous forward pass.
+        """
+
+        # These should be created in the training loop and passed in during the first forward pass
+        # h_0 = Variable(
+        #     torch.zeros(self.num_layers, x.size(0), self.hidden_size)
+        # )  # hidden state, initial input into LSTM
+        # c_0 = Variable(
+        #     torch.zeros(self.num_layers, x.size(0), self.hidden_size)
+        # )  # internal state
+
+        embeds = self.embedding(x).squeeze()
+
+        # Propagate input through LSTM
+        output, (hn, cn) = self.lstm(
+            embeds, (hidden_state, internal_state)
+        )  # lstm with input, hidden, and internal state
+
+        return output, hn, cn
 
 
 class EncoderDecoder(torch.nn.Module):
@@ -88,4 +128,3 @@ class EncoderDecoder(torch.nn.Module):
 
     def forward(self, x):
         output, hn, cn = self.encoder(x)  # pass output into decoder
-

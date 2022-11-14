@@ -52,8 +52,13 @@ def encode_data(data, vocab_to_index, instruction_cutoff_len, label_seq_len, act
 
         x[idx][jdx][0] = vocab_to_index["<end>"]
 
+        if jdx < instruction_cutoff_len:
+            for i in range(jdx, instruction_cutoff_len):
+                x[idx][i][0] = vocab_to_index["<pad>"]
+
         # encoding labels
         for i, (action, target) in enumerate(actions_targets_concat):
+            # do we need to add padding to action, target?
             if i == label_seq_len:
                 break
 

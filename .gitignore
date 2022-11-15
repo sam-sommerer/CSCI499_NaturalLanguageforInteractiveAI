@@ -136,4 +136,5 @@ hw2/plot.py
 .DS_STORE
 output.txt
 output_0.txt
-pickles/
+hw2/pickles/*
+hw2/output_dir/*

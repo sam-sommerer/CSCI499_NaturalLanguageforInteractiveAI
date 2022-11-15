@@ -72,20 +72,21 @@ def encode_data(
                 x[idx][i][0] = vocab_to_index["<pad>"]
 
         # encoding labels
-        for i, (action, target) in enumerate(actions_targets):
-            # do we need to add padding to action, target?
-            if i == label_seq_len:
-                break
+        for i in range(label_seq_len):
+            if i == len(actions_targets) - 1:
+                y[idx][i][0] = actions_to_index["<EOS>"]
+                y[idx][i][1] = targets_to_index["<EOS>"]
+                continue
+            elif i >= len(actions_targets):
+                y[idx][i][0] = actions_to_index["<pad>"]
+                y[idx][i][1] = targets_to_index["<pad>"]
+                continue
+
+            action, target = actions_targets[i]
 
             y[idx][i][0] = actions_to_index[action]
             y[idx][i][1] = targets_to_index[target]
 
-            if i == len(actions_targets) - 1 and i + 1 < label_seq_len:
-                y[idx][i + 1][0] = actions_to_index["<EOS>"]
-                y[idx][i + 1][1] = targets_to_index["<EOS>"]
-
-        # y[idx][0] = actions_to_index[action]
-        # y[idx][1] = targets_to_index[target]
         idx += 1
     print(
         "INFO: had to represent %d/%d (%.4f) tokens as unk with vocab limit %d"
@@ -257,7 +258,12 @@ def train_epoch(
     """
 
     epoch_loss = 0.0
-    epoch_acc = 0.0
+    epoch_action_acc = 0.0
+    epoch_target_acc = 0.0
+    epoch_joint_acc = 0.0
+    epoch_action_prefix_em = 0.0
+    epoch_target_prefix_em = 0.0
+    epoch_joint_prefix_em = 0.0
 
     # iterate over each batch in the dataloader
     # NOTE: you may have additional outputs from the loader __getitem__, you can modify this
@@ -323,26 +329,105 @@ def train_epoch(
         # TODO: add code to log these metrics
         # em = output == labels
         # prefix_em = prefix_em(output, labels)
-        acc = 0.0
+        # acc = 0.0
+
+        actions_top_pred_indices = torch.topk(actions_out, 1, dim=-1).indices
+        # print(f"actions_top_pred.shape: {actions_top_pred.shape}")
+        action_targets_unsqueezed = action_targets.unsqueeze(-1)
+        action_mask = actions_top_pred_indices == action_targets_unsqueezed
+        action_matches = torch.sum(action_mask)
+
+        targets_top_pred_indices = torch.topk(targets_out, 1, dim=-1).indices
+        # print(f"actions_top_pred.shape: {actions_top_pred.shape}")
+        target_targets_unsqueezed = target_targets.unsqueeze(-1)
+        target_mask = targets_top_pred_indices == target_targets_unsqueezed
+        target_matches = torch.sum(target_mask)
+
+        action_target_mask = torch.mul(action_mask, target_mask)
+        action_target_joint_matches = torch.sum(action_target_mask)
+
+        curr_action_prefix_em = 0
+        for i in range(actions_top_pred_indices.size(0)):
+            pred_action = actions_top_pred_indices[i].squeeze()
+            ground_truth_action = action_targets[i]
+            curr_action_prefix_em += prefix_match(pred_action, ground_truth_action)
+
+        curr_action_prefix_em /= actions_top_pred_indices.size(0)
+
+        curr_target_prefix_em = 0
+        for i in range(targets_top_pred_indices.size(0)):
+            pred_target = targets_top_pred_indices[i].squeeze()
+            ground_truth_target = target_targets[i]
+            curr_target_prefix_em += prefix_match(pred_target, ground_truth_target)
+
+        curr_target_prefix_em /= targets_top_pred_indices.size(0)
+
+        curr_joint_prefix_em = 0
+        for i in range(actions_top_pred_indices.size(0)):
+            pred_action_target = (
+                actions_top_pred_indices[i].squeeze() * 100
+            ) + targets_top_pred_indices[i].squeeze()
+            ground_truth_action_target = (action_targets[i] * 100) + target_targets[i]
+            curr_joint_prefix_em += prefix_match(
+                pred_action_target, ground_truth_action_target
+            )
+
+        curr_joint_prefix_em /= actions_top_pred_indices.size(0)
 
         # logging
         # epoch_loss += loss.item()
         epoch_loss += loss
-        # epoch_acc += acc.item()
+        epoch_action_acc += action_matches / torch.numel(action_mask)
+        epoch_target_acc += target_matches / torch.numel(target_mask)
+        epoch_joint_acc += action_target_joint_matches / torch.numel(action_target_mask)
+        epoch_action_prefix_em += curr_action_prefix_em
+        epoch_target_prefix_em += curr_target_prefix_em
+        epoch_joint_prefix_em += curr_joint_prefix_em
 
     epoch_loss /= len(loader)
-    epoch_acc /= len(loader)
+    epoch_action_acc /= len(loader)
+    epoch_target_acc /= len(loader)
+    epoch_joint_acc /= len(loader)
+    epoch_action_prefix_em /= len(loader)
+    epoch_target_prefix_em /= len(loader)
+    epoch_joint_prefix_em /= len(loader)
 
-    return epoch_loss, epoch_acc
+    return (
+        epoch_loss,
+        epoch_action_acc,
+        epoch_target_acc,
+        epoch_joint_acc,
+        epoch_action_prefix_em,
+        epoch_target_prefix_em,
+        epoch_joint_prefix_em,
+    )
 
 
-def validate(args, model, loader, optimizer, action_criterion, target_criterion, device, num_actions, num_targets):
+def validate(
+    args,
+    model,
+    loader,
+    optimizer,
+    action_criterion,
+    target_criterion,
+    device,
+    num_actions,
+    num_targets,
+):
     # set model to eval mode
     model.eval()
 
     # don't compute gradients
     with torch.no_grad():
-        val_loss, val_acc = train_epoch(
+        (
+            val_loss,
+            val_action_acc,
+            val_target_acc,
+            val_joint_acc,
+            val_action_prefix_em,
+            val_target_prefix_em,
+            val_joint_prefix_em,
+        ) = train_epoch(
             args,
             model,
             loader,
@@ -352,10 +437,18 @@ def validate(args, model, loader, optimizer, action_criterion, target_criterion,
             device,
             training=False,
             num_actions=num_actions,
-            num_targets=num_targets
+            num_targets=num_targets,
         )
 
-    return val_loss, val_acc
+    return (
+        val_loss,
+        val_action_acc,
+        val_target_acc,
+        val_joint_acc,
+        val_action_prefix_em,
+        val_target_prefix_em,
+        val_joint_prefix_em,
+    )
 
 
 def train(
@@ -378,7 +471,15 @@ def train(
 
         # train single epoch
         # returns loss for action and target prediction and accuracy
-        train_loss, train_acc = train_epoch(
+        (
+            train_loss,
+            train_action_acc,
+            train_target_acc,
+            train_joint_acc,
+            train_action_prefix_em,
+            train_target_prefix_em,
+            train_joint_prefix_em,
+        ) = train_epoch(
             args,
             model,
             loaders["train"],
@@ -397,7 +498,15 @@ def train(
         # during eval, we run a forward pass through the model and compute
         # loss and accuracy but we don't update the model weights
         if epoch % args.val_every == 0:
-            val_loss, val_acc = validate(
+            (
+                val_loss,
+                val_action_acc,
+                val_target_acc,
+                val_joint_acc,
+                val_action_prefix_em,
+                val_target_prefix_em,
+                val_joint_prefix_em,
+            ) = validate(
                 args,
                 model,
                 loaders["val"],
@@ -406,10 +515,15 @@ def train(
                 target_criterion,
                 device,
                 num_actions,
-                num_targets
+                num_targets,
             )
 
-            print(f"val loss : {val_loss} | val acc: {val_acc}")
+            print(
+                f"val loss : {val_loss} | val action acc: {val_action_acc} | val target acc {val_target_acc} | val joint acc {val_joint_acc}"
+            )
+            print(
+                f"\tval action prefix em: {val_action_prefix_em} | val target prefix em: {val_target_prefix_em} | val joint prefix em: {val_joint_prefix_em}"
+            )
 
     # ================== TODO: CODE HERE ================== #
     # Task: Implement some code to keep track of the model training and
@@ -435,7 +549,11 @@ def main(args):
 
     # build model
     model = setup_model(
-        args, vocab_size=vocab_size, num_actions=num_actions, num_targets=num_targets, num_predictions=avg_num_labels
+        args,
+        vocab_size=vocab_size,
+        num_actions=num_actions,
+        num_targets=num_targets,
+        num_predictions=avg_num_labels,
     )
     print(model)
 
@@ -481,7 +599,10 @@ if __name__ == "__main__":
         "--num_epochs", type=int, default=1000, help="number of training epochs"
     )
     parser.add_argument(
-        "--val_every", type=int, default=5, help="number of epochs between every eval loop"
+        "--val_every",
+        type=int,
+        default=5,
+        help="number of epochs between every eval loop",
     )
 
     # ================== TODO: CODE HERE ================== #

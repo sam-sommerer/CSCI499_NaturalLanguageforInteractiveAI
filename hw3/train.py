@@ -38,10 +38,10 @@ def encode_data(
     for episode in data:
         # print(f"episode: {episode}")
         # print(f"episode[0]: {episode[0]}")
-        instructions_concat = " ".join([instruction_set[0] for instruction_set in episode])
-        actions_targets = [
-            instruction_set[1] for instruction_set in episode
-        ]
+        instructions_concat = " ".join(
+            [instruction_set[0] for instruction_set in episode]
+        )
+        actions_targets = [instruction_set[1] for instruction_set in episode]
 
         instruction = preprocess_string(instructions_concat)
         # action, target = label
@@ -174,7 +174,7 @@ def setup_dataloader(args):
     )
 
 
-def setup_model(args, vocab_size, num_actions, num_targets):
+def setup_model(args, vocab_size, num_actions, num_targets, num_predictions):
     """
     return:
         - model: YourOwnModelClass
@@ -206,7 +206,7 @@ def setup_model(args, vocab_size, num_actions, num_targets):
         num_actions=num_actions,
         num_targets=num_targets,
         batch_first=True,
-        num_predictions=5,
+        num_predictions=num_predictions,
     )
     return model
 
@@ -236,6 +236,8 @@ def train_epoch(
     action_criterion,
     target_criterion,
     device,
+    num_actions,
+    num_targets,
     training=True,
 ):
     """
@@ -266,10 +268,43 @@ def train_epoch(
         # calculate the loss and train accuracy and perform backprop
         # NOTE: feel free to change the parameters to the model forward pass here + outputs
         actions_out, targets_out = model(inputs, labels, teacher_forcing=True)
+        actions_out = torch.tensor(actions_out)
+        targets_out = torch.tensor(targets_out)
+
+        # print(f"actions_out.shape: {actions_out.shape}")
+        # print(f"targets_out.shape: {targets_out.shape}")
+
+        # print(f"len(actions_out): {len(actions_out)}")
+        # print(f"len(targets_out): {len(targets_out)}")
+
+        # print(f"actions_out[0].shape: {actions_out[0].shape}")
 
         # loss = criterion(output.squeeze(), labels[:, 0].long())
-        action_loss = action_criterion(actions_out.float(), labels[:, 0])
-        target_loss = target_criterion(targets_out.float(), labels[:, 1])
+
+        action_targets = labels[:, :, 0]
+        target_targets = labels[:, :, 1]
+
+        # print(f"labels.shape: {labels.shape}")
+        #
+        # print(f"action_targets.shape: {action_targets.shape}")
+
+        true_actions_one_hots = torch.nn.functional.one_hot(
+            action_targets.long(), num_classes=num_actions + 3
+        ).float()
+        true_targets_one_hots = torch.nn.functional.one_hot(
+            target_targets.long(), num_classes=num_targets + 3
+        ).float()
+
+        true_actions_one_hots.requires_grad = True
+        true_targets_one_hots.requires_grad = True
+
+        action_loss = action_criterion(actions_out.float(), true_actions_one_hots)
+        target_loss = target_criterion(targets_out.float(), true_targets_one_hots)
+
+        # print(f"action_loss.shape: {action_loss.shape}")
+        # print(f"target_loss.shape: {target_loss.shape}")
+        #
+        # print(f"action_loss: {action_loss}")
 
         loss = action_loss + target_loss
 
@@ -291,8 +326,9 @@ def train_epoch(
         acc = 0.0
 
         # logging
-        epoch_loss += loss.item()
-        epoch_acc += acc.item()
+        # epoch_loss += loss.item()
+        epoch_loss += loss
+        # epoch_acc += acc.item()
 
     epoch_loss /= len(loader)
     epoch_acc /= len(loader)
@@ -300,7 +336,7 @@ def train_epoch(
     return epoch_loss, epoch_acc
 
 
-def validate(args, model, loader, optimizer, criterion, device):
+def validate(args, model, loader, optimizer, action_criterion, target_criterion, device, num_actions, num_targets):
     # set model to eval mode
     model.eval()
 
@@ -311,15 +347,28 @@ def validate(args, model, loader, optimizer, criterion, device):
             model,
             loader,
             optimizer,
-            criterion,
+            action_criterion,
+            target_criterion,
             device,
             training=False,
+            num_actions=num_actions,
+            num_targets=num_targets
         )
 
     return val_loss, val_acc
 
 
-def train(args, model, loaders, optimizer, action_criterion, target_criterion, device):
+def train(
+    args,
+    model,
+    loaders,
+    optimizer,
+    action_criterion,
+    target_criterion,
+    device,
+    num_actions,
+    num_targets,
+):
     # Train model for a fixed number of epochs
     # In each epoch we compute loss on each sample in our dataset and update the model
     # weights via backpropagation
@@ -337,6 +386,8 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
             action_criterion,
             target_criterion,
             device,
+            num_actions,
+            num_targets,
         )
 
         # some logging
@@ -351,8 +402,11 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
                 model,
                 loaders["val"],
                 optimizer,
-                criterion,
+                action_criterion,
+                target_criterion,
                 device,
+                num_actions,
+                num_targets
             )
 
             print(f"val loss : {val_loss} | val acc: {val_acc}")
@@ -368,11 +422,21 @@ def main(args):
     device = get_device(args.force_cpu)
 
     # get dataloaders
-    train_loader, val_loader, len_cutoff, avg_num_labels, num_actions, num_targets, vocab_size = setup_dataloader(args)
+    (
+        train_loader,
+        val_loader,
+        len_cutoff,
+        avg_num_labels,
+        num_actions,
+        num_targets,
+        vocab_size,
+    ) = setup_dataloader(args)
     loaders = {"train": train_loader, "val": val_loader}
 
     # build model
-    model = setup_model(args, vocab_size=vocab_size, num_actions=num_actions, num_targets=num_targets)
+    model = setup_model(
+        args, vocab_size=vocab_size, num_actions=num_actions, num_targets=num_targets, num_predictions=avg_num_labels
+    )
     print(model)
 
     # get optimizer and loss functions
@@ -384,11 +448,22 @@ def main(args):
             model,
             loaders["val"],
             optimizer,
-            criterion,
+            action_criterion,
+            target_criterion,
             device,
         )
     else:
-        train(args, model, loaders, optimizer, action_criterion, target_criterion, device)
+        train(
+            args,
+            model,
+            loaders,
+            optimizer,
+            action_criterion,
+            target_criterion,
+            device,
+            num_actions=num_actions,
+            num_targets=num_targets,
+        )
 
 
 if __name__ == "__main__":
@@ -402,9 +477,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--force_cpu", action="store_true", help="debug mode")
     parser.add_argument("--eval", action="store_true", help="run eval")
-    parser.add_argument("--num_epochs", type=int, default=1000, help="number of training epochs")
     parser.add_argument(
-        "--val_every", default=5, help="number of epochs between every eval loop"
+        "--num_epochs", type=int, default=1000, help="number of training epochs"
+    )
+    parser.add_argument(
+        "--val_every", type=int, default=5, help="number of epochs between every eval loop"
     )
 
     # ================== TODO: CODE HERE ================== #

@@ -1,0 +1,493 @@
+{
+  "train": [
+    [
+      [
+        "Walk straight, turn left to the counter.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Pick up the knife on the table.",
+        [
+          "PickupObject",
+          "knife"
+        ]
+      ],
+      [
+        "Slice the green vegetable on the table.",
+        [
+          "SliceObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Walk straight, turn right to the fridge.",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Open the fridge, put the knife inside the fridge. Close the fridge",
+        [
+          "PutObject",
+          "fridge"
+        ]
+      ],
+      [
+        "Turn right, walk straight, turn left to the counter.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Take a slice of the vegetable.",
+        [
+          "PickupObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Turn left, walk straight, turn right to the fridge.",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Open the fridge, put the slice next to the knife. Close the fridge. Open the fridge, take the slice, close the fridge.",
+        [
+          "CoolObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Turn right, walk straight, turn right, turn right, turn right to the counter.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Put the slice on the counter.",
+        [
+          "PutObject",
+          "diningtable"
+        ]
+      ],
+      [
+        "Turn left at the wooden stool and walk to the white table on the left.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Pick up the knife with the yellow handle from the middle of the table.",
+        [
+          "PickupObject",
+          "knife"
+        ]
+      ],
+      [
+        "Slice the head of lettuce on the table.",
+        [
+          "SliceObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Turn left and walk to the fridge on the right.",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Put the knife inside the fridge on the top shelf to the left of the loaf of bread and close the door.",
+        [
+          "PutObject",
+          "fridge"
+        ]
+      ],
+      [
+        "Turn right and walk to the white table on the left.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Pick up a slice of lettuce from the table.",
+        [
+          "PickupObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Turn left and walk to the fridge on the right.",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Put the slice of lettuce inside the fridge on the top shelf behind the knife, chill it, remove it and close the door.",
+        [
+          "CoolObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Turn right, head to the wooden stool on the right and turn around to face the white table.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Put the chilled slice of lettuce on the table in front of the head of lettuce.",
+        [
+          "PutObject",
+          "diningtable"
+        ]
+      ],
+      [
+        "Turn left to move to the white table.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Pick up the sharp knife from the white table.",
+        [
+          "PickupObject",
+          "knife"
+        ]
+      ],
+      [
+        "Use the knife to slice the head of lettuce.",
+        [
+          "SliceObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Carry the knife to the fridge, which is to your left.",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Place the knife on the top shelf of the fridge.",
+        [
+          "PutObject",
+          "fridge"
+        ]
+      ],
+      [
+        "Turn right and move back to stand in front of the lettuce on the table.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Pick up a piece of lettuce from the table.",
+        [
+          "PickupObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Turn left and carry the slice of lettuce to the fridge.",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Place the lettuce on the top shelf of the fridge, close the door, and then remove the lettuce after a couple seconds.",
+        [
+          "CoolObject",
+          "lettuce"
+        ]
+      ],
+      [
+        "Turn right and carry the lettuce to stand back in front of the table.",
+        [
+          "GotoLocation",
+          "diningtable"
+        ]
+      ],
+      [
+        "Place the cold lettuce slice on the table in front of the rest of the head of lettuce.",
+        [
+          "PutObject",
+          "diningtable"
+        ]
+      ]
+    ]
+  ],
+  "valid_seen": [
+    [
+      [
+        "turn to the right twice and to to the end of the counter top and turn to the left and go to the end of the counter top",
+        [
+          "GotoLocation",
+          "countertop"
+        ]
+      ],
+      [
+        "take the knife from the counter top",
+        [
+          "PickupObject",
+          "butterknife"
+        ]
+      ],
+      [
+        "turn to the left and go to the front of the refrigerator and turn to the left and go to the refrigerator",
+        [
+          "GotoLocation",
+          "potato"
+        ]
+      ],
+      [
+        "open the refrigerator door and slice up the potato on the shelf with the knife and close the refrigerator door",
+        [
+          "SliceObject",
+          "potato"
+        ]
+      ],
+      [
+        "turn to the right twice and take a few steps and turn to the left and go to the microwave",
+        [
+          "GotoLocation",
+          "microwave"
+        ]
+      ],
+      [
+        "open the microwave door and put the knife in it and close the microwave door",
+        [
+          "PutObject",
+          "microwave"
+        ]
+      ],
+      [
+        "turn to the left twice and take a few step and turn to the right and go to the refrigerator",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "open the refrigerator door and take a potato slice from the shelf and close the refrigerator door",
+        [
+          "PickupObject",
+          "potato"
+        ]
+      ],
+      [
+        "turn to the right twice and take a few steps and turn to the left and go to the microwave",
+        [
+          "GotoLocation",
+          "microwave"
+        ]
+      ],
+      [
+        "put the potato slice in the microwave and cook it and when finish cooking take out the potato slice from the microwave",
+        [
+          "HeatObject",
+          "potato"
+        ]
+      ],
+      [
+        "turn to the right twice and take a few steps and turn to the left and go to the sink",
+        [
+          "GotoLocation",
+          "sinkbasin"
+        ]
+      ],
+      [
+        "put the potato slice in the sink",
+        [
+          "PutObject",
+          "sinkbasin"
+        ]
+      ],
+      [
+        "Go to the counter across the room from the stove.",
+        [
+          "GotoLocation",
+          "countertop"
+        ]
+      ],
+      [
+        "Pick up the butter knife on the counter.",
+        [
+          "PickupObject",
+          "butterknife"
+        ]
+      ],
+      [
+        "Go to the fridge.",
+        [
+          "GotoLocation",
+          "potato"
+        ]
+      ],
+      [
+        "Cut the potato in the fridge.",
+        [
+          "SliceObject",
+          "potato"
+        ]
+      ],
+      [
+        "Take the knife to the microwave.",
+        [
+          "GotoLocation",
+          "microwave"
+        ]
+      ],
+      [
+        "Put the knife in the microwave.",
+        [
+          "PutObject",
+          "microwave"
+        ]
+      ],
+      [
+        "Go to the fridge.",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Pick up the potato slice in the fridge.",
+        [
+          "PickupObject",
+          "potato"
+        ]
+      ],
+      [
+        "Take the potato slice to the microwave.",
+        [
+          "GotoLocation",
+          "microwave"
+        ]
+      ],
+      [
+        "Cook the potato in the microwave.",
+        [
+          "HeatObject",
+          "potato"
+        ]
+      ],
+      [
+        "Take the cooked potato slice to the sink.",
+        [
+          "GotoLocation",
+          "sinkbasin"
+        ]
+      ],
+      [
+        "Put the potato slice in the sink.",
+        [
+          "PutObject",
+          "sinkbasin"
+        ]
+      ],
+      [
+        "Turn right, turn right, walk straight, turn left, walk to the counter",
+        [
+          "GotoLocation",
+          "countertop"
+        ]
+      ],
+      [
+        "Pick up the knife on top of the counter",
+        [
+          "PickupObject",
+          "butterknife"
+        ]
+      ],
+      [
+        "Turn left, walk straight, turn left, walk straight to the fridge",
+        [
+          "GotoLocation",
+          "potato"
+        ]
+      ],
+      [
+        "Open the fridge, slice the egg inside, close the fridge",
+        [
+          "SliceObject",
+          "potato"
+        ]
+      ],
+      [
+        "Turn right, turn right, walk straight to the oven",
+        [
+          "GotoLocation",
+          "microwave"
+        ]
+      ],
+      [
+        "Open the microwave, put the knife inside, close the microwave",
+        [
+          "PutObject",
+          "microwave"
+        ]
+      ],
+      [
+        "Turn left, turn left, walk straight, turn right, walk straight to the fridge",
+        [
+          "GotoLocation",
+          "fridge"
+        ]
+      ],
+      [
+        "Open the fridge, take out the sliced egg inside, close the fridge",
+        [
+          "PickupObject",
+          "potato"
+        ]
+      ],
+      [
+        "Turn right, turn right, walk straight to the oven",
+        [
+          "GotoLocation",
+          "microwave"
+        ]
+      ],
+      [
+        "Open the microwave, put the sliced egg inside, close the microwave, turn on the microwave. Open the microwave, take out the sliced egg inside, close the microwave.",
+        [
+          "HeatObject",
+          "potato"
+        ]
+      ],
+      [
+        "Turn right, turn right, turn left, walk straight to the sink",
+        [
+          "GotoLocation",
+          "sinkbasin"
+        ]
+      ],
+      [
+        "Put the sliced egg in the sink",
+        [
+          "PutObject",
+          "sinkbasin"
+        ]
+      ]
+    ]
+  ]
+}

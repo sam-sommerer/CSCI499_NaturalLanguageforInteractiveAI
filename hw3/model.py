@@ -64,7 +64,6 @@ class Decoder(torch.nn.Module):
 
     def __init__(
         self,
-        output_size,
         hidden_size,
         num_layers,
         num_actions,
@@ -72,7 +71,6 @@ class Decoder(torch.nn.Module):
         batch_first=True,
     ):
         super(Decoder, self).__init__()
-        self.output_size = output_size
         # self.num_actions_targets_misc = num_actions_targets_misc
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -127,9 +125,13 @@ class Decoder(torch.nn.Module):
 
         # embeds = self.embedding(x).squeeze()
 
+        print(f"x.shape: {x.shape}")
+        print(f"hidden_state.shape: {hidden_state.shape}")
+        print(f"internal_state.shape: {internal_state.shape}")
+
         # Propagate input through LSTM
         output, (hn, cn) = self.lstm(
-            x, (hidden_state, internal_state)
+            x.float(), (hidden_state, internal_state)
         )  # lstm with input, hidden, and internal state
 
         reshaped_hn = hn.view(-1, self.hidden_size)
@@ -161,7 +163,6 @@ class EncoderDecoder(torch.nn.Module):
         encoder_embedding_dim,
         encoder_hidden_size,
         encoder_num_layers,
-        output_size,
         decoder_hidden_size,
         decoder_num_layers,
         num_actions,
@@ -183,7 +184,6 @@ class EncoderDecoder(torch.nn.Module):
             batch_first=batch_first,
         )
         self.decoder = Decoder(
-            output_size=output_size,
             hidden_size=decoder_hidden_size,
             num_layers=decoder_num_layers,
             num_actions=num_actions,
@@ -193,7 +193,11 @@ class EncoderDecoder(torch.nn.Module):
 
     # what should the format of true labels be? a string in the format "(action, target)"?
     def forward(self, x, true_labels=None, teacher_forcing=False):
-        output, hidden_state, internal_state = self.encoder(x)  # pass output into decoder
+        output, hidden_state, internal_state = self.encoder(
+            x
+        )  # pass output into decoder
+
+        print(f"x.shape: {x.shape}")
 
         # h_0 = Variable(
         #     torch.zeros(self.num_layers, x.size(0), self.hidden_size)
@@ -209,25 +213,57 @@ class EncoderDecoder(torch.nn.Module):
         # use the indices for actions and targets
         # decoder_input = "<SOS>"
 
-        sos_actions = torch.nn.functional.one_hot(torch.tensor([0]), num_classes=self.num_actions + 3)
-        sos_targets = torch.nn.functional.one_hot(torch.tensor([0]), num_classes=self.num_targets + 3)
-        decoder_input = torch.cat((sos_actions, sos_targets))
+        sos_actions = torch.nn.functional.one_hot(
+            torch.tensor([0]), num_classes=self.num_actions + 3
+        )
+        sos_targets = torch.nn.functional.one_hot(
+            torch.tensor([0]), num_classes=self.num_targets + 3
+        )
+
+        print(f"sos_actions.shape: {sos_actions.shape}")
+        print(f"sos_targets.shape: {sos_targets.shape}")
+
+        decoder_input = torch.cat((sos_actions, sos_targets), dim=1)
+        decoder_input = decoder_input.repeat(x.size(0), 1)  # x.size(0) is batch size
+        decoder_input = torch.unsqueeze(decoder_input, 1)
+
+        print(f"decoder_input.shape: {decoder_input.shape}")
 
         if teacher_forcing:
-            for i in range(self.num_predictions):  # add <pad> after <EOS> occurs for the true label
+            print(f"true_labels.shape: {true_labels.shape}")
+            print(f"true_labels: {true_labels}")
+            for i in range(
+                self.num_predictions
+            ):  # add <pad> after <EOS> occurs for the true label
                 action_pred, target_pred, hidden_state, internal_state = self.decoder(
                     decoder_input, hidden_state, internal_state
                 )
+
                 action_preds.append(action_pred)
                 target_preds.append(target_pred)
 
-                true_action_idx, true_target_idx = true_labels[i]
+                true_action_idxs, true_target_idxs = (
+                    true_labels[:, i, 0],
+                    true_labels[:, i, 1],
+                )
 
-                true_action_one_hot = torch.nn.functional.one_hot(torch.tensor([true_action_idx]), num_classes=self.num_actions + 3)
-                true_target_one_hot = torch.nn.functional.one_hot(torch.tensor([true_target_idx]),
-                                                                  num_classes=self.num_targets + 3)
+                print(f"true_action_idx.shape: {true_action_idxs.shape}")
+                # print(true_action_idxs)
 
-                decoder_input = torch.cat((true_action_one_hot, true_target_one_hot))  # concat along dimension 0?
+                true_actions_one_hots = torch.nn.functional.one_hot(
+                    true_action_idxs.long(), num_classes=self.num_actions + 3
+                )
+                true_targets_one_hots = torch.nn.functional.one_hot(
+                    true_target_idxs.long(), num_classes=self.num_targets + 3
+                )
+
+                print(f"true_actions_one_hots.shape: {true_actions_one_hots.shape}")
+
+                decoder_input = torch.cat(
+                    (true_actions_one_hots, true_targets_one_hots), dim=1
+                )  # concat along dimension 0?
+                print(f"decoder_input.shape: {decoder_input.shape}")
+                decoder_input = torch.unsqueeze(decoder_input, 1)
         else:  # student forcing
             for i in range(self.num_predictions):
                 action_pred, target_pred, hidden_state, internal_state = self.decoder(
@@ -240,14 +276,17 @@ class EncoderDecoder(torch.nn.Module):
                 max_prob_action_idx = torch.topk(action_pred, 1).indices[0]
                 max_prob_target_idx = torch.topk(target_pred, 1).indices[0]
 
-                true_action_one_hot = torch.nn.functional.one_hot(torch.tensor([max_prob_action_idx]),
-                                                                  num_classes=self.num_actions + 3)
-                true_target_one_hot = torch.nn.functional.one_hot(torch.tensor([max_prob_target_idx]),
-                                                                  num_classes=self.num_targets + 3)
+                true_action_one_hot = torch.nn.functional.one_hot(
+                    torch.tensor([max_prob_action_idx]),
+                    num_classes=self.num_actions + 3,
+                )
+                true_target_one_hot = torch.nn.functional.one_hot(
+                    torch.tensor([max_prob_target_idx]),
+                    num_classes=self.num_targets + 3,
+                )
 
-                decoder_input = torch.cat((true_action_one_hot, true_target_one_hot))  # concat along dimension 0?
+                decoder_input = torch.cat(
+                    (true_action_one_hot, true_target_one_hot)
+                )  # concat along dimension 0?
 
         return action_preds, target_preds
-
-
-

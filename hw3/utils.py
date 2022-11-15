@@ -64,11 +64,15 @@ def build_tokenizer_table(train, vocab_size=1000):
 def build_output_tables(train):
     actions = set()
     targets = set()
-    for episode in train:
+    action_lens = []
+
+    for i, episode in enumerate(train):
+        action_lens.append(0)
         for _, outseq in episode:
             a, t = outseq
             actions.add(a)
             targets.add(t)
+            action_lens[i] += 1
     actions_to_index = {a: i + 3 for i, a in enumerate(actions)}
     actions_to_index["<SOS>"] = 0
     actions_to_index["<EOS>"] = 1
@@ -79,7 +83,10 @@ def build_output_tables(train):
     targets_to_index["<pad>"] = 2
     index_to_actions = {actions_to_index[a]: a for a in actions_to_index}
     index_to_targets = {targets_to_index[t]: t for t in targets_to_index}
-    return actions_to_index, index_to_actions, targets_to_index, index_to_targets
+
+    avg_num_actions = sum(action_lens) // len(action_lens)
+
+    return actions_to_index, index_to_actions, targets_to_index, index_to_targets, avg_num_actions
 
 
 def prefix_match(predicted_labels, gt_labels):

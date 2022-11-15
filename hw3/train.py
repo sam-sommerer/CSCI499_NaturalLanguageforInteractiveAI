@@ -36,8 +36,12 @@ def encode_data(
     n_tks = 0
 
     for episode in data:
-        instructions_concat = " ".join([instruction for instruction, _ in episode])
-        actions_targets = [label for _, label in episode]
+        # print(f"episode: {episode}")
+        # print(f"episode[0]: {episode[0]}")
+        instructions_concat = " ".join([instruction_set[0] for instruction_set in episode])
+        actions_targets = [
+            instruction_set[1] for instruction_set in episode
+        ]
 
         instruction = preprocess_string(instructions_concat)
         # action, target = label
@@ -77,7 +81,8 @@ def encode_data(
             y[idx][i][1] = targets_to_index[target]
 
             if i == len(actions_targets) - 1 and i + 1 < label_seq_len:
-                y[idx][i + 1][0] = "<EOS>"
+                y[idx][i + 1][0] = actions_to_index["<EOS>"]
+                y[idx][i + 1][1] = targets_to_index["<EOS>"]
 
         # y[idx][0] = actions_to_index[action]
         # y[idx][1] = targets_to_index[target]
@@ -120,12 +125,15 @@ def setup_dataloader(args):
         index_to_actions,
         targets_to_index,
         index_to_targets,
+        avg_num_labels,
     ) = build_output_tables(train_data)
     train_data = [episode for episode in train_data]
+    # print(f"train_data[0]: {train_data[0]}")
     train_np_x, train_np_y = encode_data(
         data=train_data,
         vocab_to_index=vocab_to_index,
-        seq_len=len_cutoff,
+        instruction_cutoff_len=len_cutoff * 4,
+        label_seq_len=avg_num_labels,
         actions_to_index=actions_to_index,
         targets_to_index=targets_to_index,
     )
@@ -133,15 +141,12 @@ def setup_dataloader(args):
         torch.from_numpy(train_np_x), torch.from_numpy(train_np_y)
     )
 
-    validation_data = [
-        instruction
-        for instruction_set in validation_data
-        for instruction in instruction_set
-    ]
+    validation_data = [episode for episode in validation_data]
     validation_np_x, validation_np_y = encode_data(
         data=validation_data,
         vocab_to_index=vocab_to_index,
-        seq_len=len_cutoff,
+        instruction_cutoff_len=len_cutoff * 4,
+        label_seq_len=avg_num_labels,
         actions_to_index=actions_to_index,
         targets_to_index=targets_to_index,
     )
@@ -154,21 +159,22 @@ def setup_dataloader(args):
         validation_dataset, shuffle=True, batch_size=args.batch_size
     )
 
-    num_actions = len(index_to_actions)
-    num_targets = len(index_to_targets)
+    num_actions = len(index_to_actions) - 3
+    num_targets = len(index_to_targets) - 3
     vocab_size = len(vocab_to_index)
 
     return (
         train_loader,
         validation_loader,
         len_cutoff,
+        avg_num_labels,
         num_actions,
         num_targets,
         vocab_size,
     )
 
 
-def setup_model(args, vocab_size, encoder_embedding_dim, num_actions, num_targets):
+def setup_model(args, vocab_size, num_actions, num_targets):
     """
     return:
         - model: YourOwnModelClass
@@ -192,7 +198,7 @@ def setup_model(args, vocab_size, encoder_embedding_dim, num_actions, num_target
     # ===================================================== #
     model = EncoderDecoder(
         vocab_size=vocab_size,
-        encoder_embedding_dim=encoder_embedding_dim,
+        encoder_embedding_dim=64,
         encoder_hidden_size=128,
         encoder_num_layers=1,
         decoder_hidden_size=128,
@@ -262,8 +268,8 @@ def train_epoch(
         actions_out, targets_out = model(inputs, labels, teacher_forcing=True)
 
         # loss = criterion(output.squeeze(), labels[:, 0].long())
-        action_loss = action_criterion(actions_out.float(), labels[:, 0].long())
-        target_loss = target_criterion(targets_out.float(), labels[:, 1].long())
+        action_loss = action_criterion(actions_out.float(), labels[:, 0])
+        target_loss = target_criterion(targets_out.float(), labels[:, 1])
 
         loss = action_loss + target_loss
 
@@ -313,7 +319,7 @@ def validate(args, model, loader, optimizer, criterion, device):
     return val_loss, val_acc
 
 
-def train(args, model, loaders, optimizer, criterion, device):
+def train(args, model, loaders, optimizer, action_criterion, target_criterion, device):
     # Train model for a fixed number of epochs
     # In each epoch we compute loss on each sample in our dataset and update the model
     # weights via backpropagation
@@ -328,7 +334,8 @@ def train(args, model, loaders, optimizer, criterion, device):
             model,
             loaders["train"],
             optimizer,
-            criterion,
+            action_criterion,
+            target_criterion,
             device,
         )
 
@@ -361,15 +368,15 @@ def main(args):
     device = get_device(args.force_cpu)
 
     # get dataloaders
-    train_loader, val_loader, maps = setup_dataloader(args)
+    train_loader, val_loader, len_cutoff, avg_num_labels, num_actions, num_targets, vocab_size = setup_dataloader(args)
     loaders = {"train": train_loader, "val": val_loader}
 
     # build model
-    model = setup_model(args, maps, device)
+    model = setup_model(args, vocab_size=vocab_size, num_actions=num_actions, num_targets=num_targets)
     print(model)
 
     # get optimizer and loss functions
-    criterion, optimizer = setup_optimizer(args, model)
+    action_criterion, target_criterion, optimizer = setup_optimizer(args, model)
 
     if args.eval:
         val_loss, val_acc = validate(
@@ -381,7 +388,7 @@ def main(args):
             device,
         )
     else:
-        train(args, model, loaders, optimizer, criterion, device)
+        train(args, model, loaders, optimizer, action_criterion, target_criterion, device)
 
 
 if __name__ == "__main__":
@@ -395,7 +402,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--force_cpu", action="store_true", help="debug mode")
     parser.add_argument("--eval", action="store_true", help="run eval")
-    parser.add_argument("--num_epochs", default=1000, help="number of training epochs")
+    parser.add_argument("--num_epochs", type=int, default=1000, help="number of training epochs")
     parser.add_argument(
         "--val_every", default=5, help="number of epochs between every eval loop"
     )

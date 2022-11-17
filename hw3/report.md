@@ -61,5 +61,5 @@ during validation. Combined with the `0` from the training data, this indicates 
 attending to the action parts of the input.
 
 ## Loss
-
+Across both training and validation, the losses of both the base encoder decoder model and the attention model essentially perform the same.
 

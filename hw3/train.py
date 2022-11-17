@@ -3,8 +3,8 @@ import torch
 import argparse
 import numpy as np
 import json
-from sklearn.metrics import accuracy_score
 from torch.utils.data import TensorDataset, DataLoader
+import matplotlib.pyplot as plt
 
 from utils import (
     get_device,
@@ -15,6 +15,8 @@ from utils import (
 )
 
 from model import EncoderDecoder
+from attention_model import EncoderDecoderAttention
+from transformer_model import EncoderDecoderTransformer
 
 
 def encode_data(
@@ -197,19 +199,48 @@ def setup_model(args, vocab_size, num_actions, num_targets, num_predictions):
     # of feeding the model prediction into the recurrent model,
     # you will give the embedding of the target token.
     # ===================================================== #
-    model = EncoderDecoder(
-        vocab_size=vocab_size,
-        encoder_embedding_dim=64,
-        encoder_hidden_size=128,
-        encoder_num_layers=1,
-        decoder_hidden_size=128,
-        decoder_num_layers=1,
-        num_actions=num_actions,
-        num_targets=num_targets,
-        batch_first=True,
-        num_predictions=num_predictions,
-    )
-    return model
+    if args.model_type == "default":
+        model = EncoderDecoder(
+            vocab_size=vocab_size,
+            encoder_embedding_dim=64,
+            encoder_hidden_size=128,
+            encoder_num_layers=1,
+            decoder_hidden_size=128,
+            decoder_num_layers=1,
+            num_actions=num_actions,
+            num_targets=num_targets,
+            batch_first=True,
+            num_predictions=num_predictions,
+        )
+        return model
+    elif args.model_type == "attention":
+        model = EncoderDecoderAttention(
+            vocab_size=vocab_size,
+            encoder_embedding_dim=64,
+            encoder_hidden_size=128,
+            encoder_num_layers=1,
+            decoder_hidden_size=128,
+            decoder_num_layers=1,
+            num_actions=num_actions,
+            num_targets=num_targets,
+            batch_first=True,
+            num_predictions=num_predictions,
+        )
+        return model
+    elif args.model_type == "transformer":
+        model = EncoderDecoderTransformer(
+            vocab_size=vocab_size,
+            encoder_embedding_dim=64,
+            encoder_hidden_size=128,
+            encoder_num_layers=1,
+            decoder_hidden_size=128,
+            decoder_num_layers=1,
+            num_actions=num_actions,
+            num_targets=num_targets,
+            batch_first=True,
+            num_predictions=num_predictions,
+        )
+        return model
 
 
 def setup_optimizer(args, model):
@@ -467,6 +498,22 @@ def train(
     # weights via backpropagation
     model.train()
 
+    train_loss_list = []
+    train_action_acc_list = []
+    train_target_acc_list = []
+    train_joint_acc_list = []
+    train_action_prefix_em_list = []
+    train_target_prefix_em_list = []
+    train_joint_prefix_em_list = []
+
+    validation_loss_list = []
+    validation_action_acc_list = []
+    validation_target_acc_list = []
+    validation_joint_acc_list = []
+    validation_action_prefix_em_list = []
+    validation_target_prefix_em_list = []
+    validation_joint_prefix_em_list = []
+
     for epoch in tqdm.tqdm(range(args.num_epochs)):
 
         # train single epoch
@@ -493,6 +540,14 @@ def train(
 
         # some logging
         print(f"train loss : {train_loss}")
+
+        train_loss_list.append(train_loss.detach().numpy())
+        train_action_acc_list.append(train_action_acc)
+        train_target_acc_list.append(train_target_acc)
+        train_joint_acc_list.append(train_joint_acc)
+        train_action_prefix_em_list.append(train_action_prefix_em)
+        train_target_prefix_em_list.append(train_target_prefix_em)
+        train_joint_prefix_em_list.append(train_joint_prefix_em)
 
         # run validation every so often
         # during eval, we run a forward pass through the model and compute
@@ -525,11 +580,50 @@ def train(
                 f"\tval action prefix em: {val_action_prefix_em} | val target prefix em: {val_target_prefix_em} | val joint prefix em: {val_joint_prefix_em}"
             )
 
+            validation_loss_list.append(val_loss.detach().numpy())
+            validation_action_acc_list.append(val_action_acc)
+            validation_target_acc_list.append(val_target_acc)
+            validation_joint_acc_list.append(val_joint_acc)
+            validation_action_prefix_em_list.append(val_action_prefix_em)
+            validation_target_prefix_em_list.append(val_target_prefix_em)
+            validation_joint_prefix_em_list.append(val_joint_prefix_em)
+
     # ================== TODO: CODE HERE ================== #
     # Task: Implement some code to keep track of the model training and
     # evaluation loss. Use the matplotlib library to plot
     # 3 figures for 1) training loss, 2) validation loss, 3) validation accuracy
     # ===================================================== #
+    fig, axes = plt.subplots(4, 5)
+    axes[0, 0].plot([i for i in range(len(train_action_acc_list))], train_action_acc_list)
+    axes[0, 0].set_title("Training Accuracy Actions")
+    axes[0, 1].plot([i for i in range(len(train_action_prefix_em_list))], train_action_prefix_em_list)
+    axes[0, 1].set_title("Training Prefix EM Actions")
+    axes[0, 2].plot([i for i in range(len(train_target_acc_list))], train_target_acc_list)
+    axes[0, 2].set_title("Training Accuracy Targets")
+    axes[0, 3].plot([i for i in range(len(train_target_prefix_em_list))], train_target_prefix_em_list)
+    axes[0, 3].set_title("Training Prefix EM Targets")
+    axes[0, 4].plot([i for i in range(len(train_joint_acc_list))], train_joint_acc_list)
+    axes[0, 4].set_title("Training Accuracy Joint")
+    axes[1, 0].plot([i for i in range(len(train_joint_prefix_em_list))], train_joint_prefix_em_list)
+    axes[1, 0].set_title("Training Prefix EM Joint")
+    axes[1, 1].plot([i for i in range(len(train_loss_list))], train_loss_list)
+    axes[1, 1].set_title("Training Loss")
+    axes[2, 0].plot([i for i in range(len(validation_action_acc_list))], validation_action_acc_list)
+    axes[2, 0].set_title("Validation Accuracy Actions")
+    axes[2, 1].plot([i for i in range(len(validation_action_prefix_em_list))], validation_action_prefix_em_list)
+    axes[2, 1].set_title("Validation Prefix EM Actions")
+    axes[2, 2].plot([i for i in range(len(validation_target_acc_list))], validation_target_acc_list)
+    axes[2, 2].set_title("Validation Accuracy Targets")
+    axes[2, 3].plot([i for i in range(len(validation_target_prefix_em_list))], validation_target_prefix_em_list)
+    axes[2, 3].set_title("Validation Prefix EM Targets")
+    axes[2, 4].plot([i for i in range(len(validation_joint_acc_list))], validation_joint_acc_list)
+    axes[2, 4].set_title("Validation Accuracy Joint")
+    axes[3, 0].plot([i for i in range(len(validation_joint_prefix_em_list))], validation_joint_prefix_em_list)
+    axes[3, 0].set_title("Validation Prefix EM Joint")
+    axes[3, 1].plot([i for i in range(len(validation_loss_list))], validation_loss_list)
+    axes[3, 1].set_title("Validation Loss")
+
+    plt.show()
 
 
 def main(args):
@@ -603,6 +697,12 @@ if __name__ == "__main__":
         type=int,
         default=5,
         help="number of epochs between every eval loop",
+    )
+    parser.add_argument(
+        "--model_type",
+        type=str,
+        default="default",
+        help="type of model to use (default, attention, or transformer)",
     )
 
     # ================== TODO: CODE HERE ================== #
